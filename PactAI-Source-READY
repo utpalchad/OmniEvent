@@ -1,0 +1,1 @@
+Complete PactAI source archive is staged in the ordered base64 part files. The repository workflow will unpack, install dependencies, run the production build, and commit the application source.
