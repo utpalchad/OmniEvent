@@ -201,7 +201,7 @@ function CheckoutStage({ vendors, dates, quoteId, onBack, onRestart, setStatus, 
   };
   const createOrder = async () => {
     const result = await api('/api/create-paypal-order', { quoteId, vendorIds: vendors.map(v => v.id), dates });
-    return result.orderID || result.id;
+    return { orderId: result.orderId || result.orderID || result.id };
   };
   const captureOrder = async (orderId) => {
     const result = await api('/api/capture-paypal-order', { orderID: orderId, quoteId });
@@ -239,7 +239,7 @@ function CheckoutStage({ vendors, dates, quoteId, onBack, onRestart, setStatus, 
   };
 
   const paymentControl = PAYPAL_CLIENT_ID
-    ? <PayPalProvider clientId={PAYPAL_CLIENT_ID} components={['buttons']} currency="USD" intent="capture">
+    ? <PayPalProvider clientId={PAYPAL_CLIENT_ID} environment="sandbox" components={["paypal-payments"]} pageType="checkout">
         <PayPalOneTimePaymentButton createOrder={createOrder} onApprove={({ orderId }) => captureOrder(orderId)} onError={(err) => setNotice(err?.message || 'PayPal checkout could not be completed.')} />
       </PayPalProvider>
     : <button className="button button-dark checkout-demo" type="button" onClick={fundDemo}><Wallet size={16} /> Run demo checkout</button>;
