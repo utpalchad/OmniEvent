@@ -1,36 +1,66 @@
-# OmniEvent
+# OmniEvent · PactAI
 
-PactAI — Autonomous Multi-Vendor Event Negotiation & PayPal Escrow Protocol.
+**PactAI — Autonomous Multi-Vendor Event Negotiation & PayPal Escrow Protocol**
 
-A viewport-first React SPA with six animated stages: event configuration, calendar planning, curated vendor selection, AI negotiation, an itemized payment ledger, and PayPal Sandbox checkout/refund workflows.
+A six-stage, viewport-first React experience for planning an event, choosing a curated vendor circle, watching bundle negotiation, reviewing milestone allocations, and exploring a PayPal Sandbox checkout/refund flow.
 
 ## Run locally
 
-Requires Node.js 20.19+.
+Requires Node.js 20.19+ (Node 22 recommended).
 
 ```bash
 npm install
-cp .env.example .env
-npm run dev:all
+npm run dev
 ```
 
-Open http://localhost:5173. The frontend runs on port 5173 and the API runs on port 8000. To run only the frontend demo, use `npm run dev`; it falls back to the bundled curated vendor catalogue and local demo negotiation when the API is unavailable.
+Open http://localhost:5173.
 
-## Environment
+The frontend works immediately in demo mode. It uses a bundled vendor catalogue and a local, deterministic negotiation fallback when the optional API is unavailable.
 
-Copy `.env.example` to `.env`. `VITE_API_URL` points to the API. `VITE_PAYPAL_CLIENT_ID` is the public PayPal Sandbox client ID. `PAYPAL_CLIENT_ID` and `PAYPAL_CLIENT_SECRET` are server-only credentials and must never be exposed to the browser.
-
-## Payment note
-
-A standard PayPal Checkout capture pays the configured merchant. The milestone ledger in this hackathon prototype is an orchestration record, not a regulated escrow account or custodied balance. Do not represent it as legally held escrow without the relevant PayPal product approval, agreements, and compliant funds flow.
-
-## Stack
-
-React, Vite, Tailwind CSS, Framer Motion, Lucide, AG Grid, PayPal React SDK v6, Express.
-
-## Build
+## Production build
 
 ```bash
 npm run build
 npm run preview
 ```
+
+## Publish with GitHub Pages
+
+A GitHub Actions workflow at `.github/workflows/deploy-pages.yml` builds and publishes the static frontend whenever `main` is updated.
+
+One-time repository setting:
+1. Open **Settings → Pages** in this repository.
+2. Under **Build and deployment → Source**, choose **GitHub Actions**.
+3. Push to `main` or run **Actions → Deploy PactAI to GitHub Pages → Run workflow**.
+
+The public static demo URL will be:
+
+https://utpalchad.github.io/OmniEvent/
+
+The demo does not need secrets. To connect a hosted API, add `VITE_API_URL` and `VITE_PAYPAL_CLIENT_ID` as GitHub Actions repository variables. The API must implement the routes used in `src/App.jsx`:
+
+- `POST /api/plan-event`
+- `POST /api/negotiate`
+- `POST /api/create-paypal-order`
+- `POST /api/capture-paypal-order`
+- `POST /api/cancel-and-refund`
+
+The public PayPal client ID can be a build variable; keep `PAYPAL_CLIENT_SECRET` on the backend only. Never put a PayPal secret in a `VITE_*` variable or commit it to Git.
+
+## Important payment distinction
+
+The static demo records simulated funding/cancellation locally and moves no money. A real PayPal Checkout capture pays the configured merchant; the milestone ledger is an orchestration record, **not a regulated escrow account or custodied balance**. Any real escrow-like funds flow requires the appropriate PayPal product approval, legal structure, and compliant backend handling.
+
+## Stack
+
+React · Vite · Tailwind CSS v4 · Framer Motion · Lucide · AG Grid Community · date-fns · PayPal React SDK v6
+
+## Project structure
+
+- `src/App.jsx` — six-stage wizard, negotiation and checkout flow
+- `src/components/CalendarPlanner.jsx` — event/setup/milestone calendar
+- `src/components/BudgetGrid.jsx` — AG Grid vendor ledger
+- `src/data/catalog.js` — curated local vendor catalogue
+- `src/index.css` — warm editorial design system
+- `src/main.jsx` — React entry point
+- `vite.config.js` — Vite, React, Tailwind and GitHub Pages base path
