@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { addMonths, format, isBefore, isAfter, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, startOfDay, parseISO } from 'date-fns';
+import { addMonths, addHours, format, isBefore, isAfter, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, startOfDay, parseISO } from 'date-fns';
 import { CalendarDays, ChevronLeft, ChevronRight, Clock3, LockKeyhole, Sparkles } from 'lucide-react';
 
 const ROLES = [
@@ -23,19 +23,24 @@ export default function CalendarPlanner({ dates, onChange, setupTime, onSetupTim
   }, [visibleMonth]);
   const previousRole = { auditDate: 'depositDate', setupDate: 'auditDate', eventDate: 'setupDate', releaseDate: 'eventDate' }[activeRole];
   const minimumDate = previousRole ? safeDate(dates[previousRole]) : today;
-  const followingRole = { depositDate: 'auditDate', auditDate: 'setupDate', setupDate: 'eventDate' }[activeRole];
+  const followingRole = { depositDate: 'auditDate', auditDate: 'setupDate', setupDate: 'eventDate', eventDate: 'releaseDate' }[activeRole];
   const maximumDate = followingRole ? safeDate(dates[followingRole]) : null;
   const selectDay = day => {
     const selected = startOfDay(day);
     if (isBefore(selected, today) || isBefore(selected, startOfDay(minimumDate)) || (maximumDate && isAfter(selected, startOfDay(maximumDate)))) return;
     onChange({ ...dates, [activeRole]: isoDate(day) });
   };
+  const toSlot = (id, name, startDate, vendor) => ({
+    id, name, startDate,
+    endDate: format(addHours(new Date(startDate), 1), "yyyy-MM-dd'T'HH:mm:ss"),
+    vendor
+  });
   const timeline = [
-    { id: 'deposit', name: 'Initial funding checkpoint', startDate: `${dates.depositDate}T12:00:00`, vendor: 'PactAI payment plan' },
-    { id: 'audit', name: 'Midway quality audit', startDate: `${dates.auditDate}T11:00:00`, vendor: 'Selected vendors' },
-    { id: 'setup', name: 'Vendor access & setup', startDate: `${dates.setupDate}T${setupTime || '09:00'}:00`, vendor: 'Venue + decor teams' },
-    { id: 'event', name: 'Event execution', startDate: `${dates.eventDate}T16:00:00`, vendor: 'All selected vendors' },
-    { id: 'release', name: 'Final completion review', startDate: `${dates.releaseDate}T10:00:00`, vendor: 'PactAI payment plan' }
+    toSlot('deposit', 'Initial funding checkpoint', `${dates.depositDate}T12:00:00`, 'PactAI payment plan'),
+    toSlot('audit', 'Midway quality audit', `${dates.auditDate}T11:00:00`, 'Selected vendors'),
+    toSlot('setup', 'Vendor access & setup', `${dates.setupDate}T${setupTime || '09:00'}:00`, 'Venue + decor teams'),
+    toSlot('event', 'Event execution', `${dates.eventDate}T16:00:00`, 'All selected vendors'),
+    toSlot('release', 'Final completion review', `${dates.releaseDate}T10:00:00`, 'PactAI payment plan')
   ];
   return <div className="calendar-layout">
     <section className="panel calendar-panel">
