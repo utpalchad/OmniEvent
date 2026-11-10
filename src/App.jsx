@@ -81,6 +81,11 @@ function ImageMosaic({ eventType, tier }) {
     <motion.div className="mosaic-secondary mosaic-one" initial={{ opacity: 0, x: 18 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: .28, ...transition }} whileHover={{ y: -4 }}><img src={image(pictures[1], 580)} alt="Event table styling" /></motion.div>
     <motion.div className="mosaic-secondary mosaic-two" initial={{ opacity: 0, x: 22 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: .4, ...transition }} whileHover={{ y: -4 }}><img src={image(pictures[2], 580)} alt="Floral event details" /></motion.div>
     <div className="bundle-badge"><Sparkles size={14} /><span><small>YOUR BUNDLE TIER</small><strong>{tier}</strong></span></div>
+    <motion.div className="mosaic-floating-note" initial={{ opacity: 0, scale: .92, y: 14 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ delay: .55, ...transition }}>
+      <span className="floating-note-top"><Sparkles size={12} /> THE PACTAI TOUCH</span>
+      <strong>Every detail, in rhythm.</strong>
+      <small>One brief. A better way to gather.</small>
+    </motion.div>
     <span className="mosaic-caption">A GOOD GATHERING, BEAUTIFULLY ORCHESTRATED</span>
   </div>;
 }
@@ -343,7 +348,8 @@ export default function App() {
   };
 
   return <div className="app-shell">
-    <header className="app-header"><Brand /><div className="header-meta"><span className="header-dot" /> AUTONOMOUS EVENT COMMERCE <i>·</i> PAYPAL HACKATHON BUILD</div><div className="header-trust"><ShieldCheck size={14} /> PRIVATE BY DESIGN</div></header>
+    <div className="ambient-scene" aria-hidden="true"><i className="ambient-orb orb-one" /><i className="ambient-orb orb-two" /><i className="ambient-orb orb-three" /><span className="ambient-spark spark-one">✦</span><span className="ambient-spark spark-two">✧</span></div>
+    <header className="app-header"><Brand /><div className="header-meta"><span className="header-dot" /><Sparkles size={13} /> AUTONOMOUS EVENT COMMERCE <i>·</i> PAYPAL HACKATHON BUILD</div><div className="header-trust"><ShieldCheck size={14} /> PRIVATE BY DESIGN</div></header>
     <Progress step={step} onStep={go} />
     <main className="app-main">
       <AnimatePresence mode="wait" initial={false}>
