@@ -205,7 +205,7 @@ function CheckoutStage({ vendors, dates, quoteId, onBack, onRestart, setStatus, 
   };
   const captureOrder = async (orderId) => {
     const result = await api('/api/capture-paypal-order', { orderID: orderId, quoteId });
-    setReceipt({ mode: 'paypal', id: result.captureId || result.orderID || orderId, at: new Date().toISOString(), capture: result });
+    setReceipt({ mode: 'paypal', id: result.captureId || result.id || orderId, orderId, captureId: result.captureId || result.id, at: new Date().toISOString(), capture: result });
     setStatus('PayPal payment captured');
     setNotice('PayPal Sandbox capture confirmed by the backend.');
   };
@@ -221,7 +221,7 @@ function CheckoutStage({ vendors, dates, quoteId, onBack, onRestart, setStatus, 
     }
     try {
       if (receipt.mode === 'paypal') {
-        const result = await api('/api/cancel-and-refund', { command, vendorId: target.id, orderID: receipt.id, quoteId });
+        const result = await api('/api/cancel-and-refund', { command, vendorId: target.id, orderID: receipt.orderId, captureId: receipt.captureId, quoteId });
         const refundId = result.refundId || result.id || 'Refund confirmed';
         setVendors(current => current.map(v => v.id === target.id ? { ...v, refundStatus: 'Refunded via PayPal' } : v));
         setNotice(`PayPal refund submitted: ${refundId}`);
