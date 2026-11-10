@@ -1,1 +1,1 @@
-Complete PactAI source archive is staged in the ordered base64 part files. The repository workflow will unpack, install dependencies, run the production build, and commit the application source.
+READY: all ordered PactAI source archive segments have been uploaded and length-checked. Unpack, install dependencies, run the production build, then commit the complete application source.
