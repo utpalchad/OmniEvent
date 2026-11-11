@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
-  ArrowLeft, ArrowRight, BadgeCheck, Building2, CalendarDays, Check, CheckCircle2,
-  ChevronRight, Clock3, CreditCard, Flower2, HeartHandshake, LockKeyhole, MapPin,
-  Minus, Plus, RefreshCw, ShieldCheck, Sparkles, Star, Truck, Utensils, Wallet,
+  ArrowLeft, ArrowRight, BadgeCheck, Building2, CalendarDays, Camera, CakeSlice,
+  Check, CheckCircle2, ChevronRight, ClipboardList, Clock3, CreditCard, Flower2,
+  Hand, HeartHandshake, LockKeyhole, MapPin, Mic2, Minus, Music2, Palette, Plus,
+  RefreshCw, ShieldCheck, Shirt, Sparkles, Star, Truck, Utensils, Wallet, Brush,
   X, Send, RotateCcw
 } from 'lucide-react';
 import { PayPalProvider, PayPalOneTimePaymentButton } from '@paypal/react-paypal-js/sdk-v6';
@@ -14,7 +15,24 @@ import { EVENT_TYPES, SERVICE_META, formatMoney, getLocalVendors } from './data/
 const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000').replace(/\/$/, '');
 const PAYPAL_CLIENT_ID = import.meta.env.VITE_PAYPAL_CLIENT_ID || '';
 const LABELS = ['The occasion', 'Dates & milestones', 'Vendor circle', 'Negotiation', 'Payment ledger', 'Checkout'];
-const ICONS = { venue: Building2, catering: Utensils, transport: Truck, decor: Flower2 };
+const ICONS = {
+  venue: Building2, catering: Utensils, transport: Truck, decor: Flower2,
+  photography: Camera, makeup: Brush, mehendi: Hand, entertainment: Music2,
+  cake: CakeSlice, planner: ClipboardList, fashion: Shirt
+};
+const SERVICE_TERMS = {
+  venue: /\\b(venue|banquet|hall|resort|farmhouse|lawn)\\b/i,
+  catering: /\\b(catering|food|menu|buffet)\\b/i,
+  decor: /\\b(decor|floral|stage|mandap)\\b/i,
+  photography: /\\b(photo|photography|cinema|film|drone)\\b/i,
+  makeup: /\\b(makeup|make-up|hair|styling)\\b/i,
+  mehendi: /\\b(mehendi|mehndi|henna)\\b/i,
+  entertainment: /\\b(dj|music|band|anchor|sound|entertainment)\\b/i,
+  transport: /\\b(transport|shuttle|cab|car|transfer)\\b/i,
+  cake: /\\b(cake|dessert|bakery)\\b/i,
+  planner: /\\b(planner|planning|coordination|event manager)\\b/i,
+  fashion: /\\b(bride|bridal|groom|sherwani|jewellery|fashion)\\b/i
+};
 const EASE = [0.22, 1, 0.36, 1];
 const transition = { duration: 0.48, ease: EASE };
 
@@ -105,14 +123,21 @@ function OccasionStage({ config, setConfig, next }) {
       <p className="hero-lede">One brief. A circle of exceptional vendors. A smarter way to bring every detail together.</p>
       <div className="hero-scroll-cue"><span className="hero-scroll-line" /><span>SCROLL TO COMPOSE YOUR MOMENT</span><span className="hero-scroll-count">01 — 06</span></div>
       <div className="section-label"><b>01</b><strong>What are we gathering for?</strong><small>CHOOSE AN OCCASION</small></div>
-      <div className="occasion-cards">
-        {EVENT_TYPES.map(event => <motion.button key={event.id} type="button" className={`occasion-card ${config.eventType === event.id ? 'selected' : ''}`} whileHover={{ y: -4 }} whileTap={{ scale: .99 }} onClick={() => setConfig(c => ({ ...c, eventType: event.id }))}>
-          <span className="occasion-emoji">{event.icon}</span><strong>{event.label}</strong><small>{event.detail}</small>{config.eventType === event.id && <span className="card-check"><Check size={12} /></span>}
-        </motion.button>)}
-      </div>
-      <div className="section-label"><b>02</b><strong>Choose your service circle</strong><small>ANY COMBINATION</small></div>
+      {['Wedding & ceremonies', 'Family & social', 'Corporate & professional'].map((group, groupIndex) => <section className="occasion-group" key={group}>
+        <div className="occasion-group-heading"><span>0{groupIndex + 1}</span><strong>{group}</strong><small>{EVENT_TYPES.filter(event => event.group === group).length} OCCASION TYPES</small></div>
+        <div className="occasion-cards">
+          {EVENT_TYPES.filter(event => event.group === group).map(event => <motion.button key={event.id} type="button" className={`occasion-card ${config.eventType === event.id ? 'selected' : ''}`} whileHover={{ y: -5 }} whileTap={{ scale: .975 }} onClick={() => setConfig(c => ({ ...c, eventType: event.id }))}>
+            <span className="occasion-emoji">{event.icon}</span><strong>{event.label}</strong><small>{event.detail}</small>{config.eventType === event.id && <span className="card-check"><Check size={12} /></span>}
+          </motion.button>)}
+        </div>
+      </section>)}
+      <div className="section-label"><b>02</b><strong>Build your service circle</strong><small>SELECT EVERYTHING YOU NEED</small></div>
       <div className="service-grid">
-        {Object.entries(SERVICE_META).map(([key, meta]) => { const Icon = ICONS[key]; const active = config.services.includes(key); return <button key={key} type="button" className={`service-chip ${active ? 'selected' : ''}`} onClick={() => toggle(key)}><Icon size={17} /><span>{meta.label}</span><span className="chip-check">{active ? <Check size={12} /> : <Plus size={12} />}</span></button>; })}
+        {Object.entries(SERVICE_META).map(([key, meta]) => { const Icon = ICONS[key]; const active = config.services.includes(key); return <button key={key} type="button" className={`service-chip ${active ? 'selected' : ''}`} onClick={() => toggle(key)} aria-pressed={active}>
+          <span className="service-chip-icon"><Icon size={18} /></span>
+          <span className="service-chip-copy"><strong>{meta.label}</strong><small>{meta.short}</small></span>
+          <span className="chip-check">{active ? <Check size={13} /> : <Plus size={13} />}</span>
+        </button>; })}
       </div>
       <div className="brief-grid">
         <label className="field"><span>GUEST COUNT</span><input type="number" min="1" max="5000" value={config.guestCount} onChange={e => setConfig(c => ({ ...c, guestCount: e.target.value }))} /></label>
@@ -222,7 +247,7 @@ function CheckoutStage({ vendors, dates, quoteId, onBack, onRestart, setStatus, 
     event.preventDefault();
     if (!command.trim() || !funded || busy) return;
     setBusy(true); setNotice('');
-    const target = vendors.find(v => command.toLowerCase().includes(v.service) || command.toLowerCase().includes(v.name.toLowerCase()) || (v.service === 'transport' && /shuttle|transport/i.test(command)) || (v.service === 'decor' && /floral|decor/i.test(command)));
+    const target = vendors.find(v => command.toLowerCase().includes(v.service) || command.toLowerCase().includes(v.name.toLowerCase()) || SERVICE_TERMS[v.service]?.test(command));
     if (!target) {
       setNotice('I could not confidently match that request to one selected service. Mention the vendor or service name.');
       setBusy(false);
@@ -280,7 +305,7 @@ function CheckoutStage({ vendors, dates, quoteId, onBack, onRestart, setStatus, 
 export default function App() {
   const [step, setStep] = useState(0);
   const [config, setConfig] = useState({
-    eventType: 'wedding', services: ['venue', 'catering', 'decor'],
+    eventType: 'wedding', services: ['venue', 'catering', 'decor', 'photography', 'mehendi', 'entertainment'],
     guestCount: '120', city: 'New Delhi',
     vision: 'A candlelit garden celebration with thoughtful details.',
     budget: '18000'
@@ -347,8 +372,13 @@ export default function App() {
     setBusy(true); setError('');
     try {
       const result = await api('/api/plan-event', { ...config, guestCount: Number(config.guestCount), budget: Number(config.budget), event_date: dates.eventDate, services: config.services });
-      const remote = Array.isArray(result.vendors) && result.vendors.length ? result.vendors : getLocalVendors(config.eventType, config.services, config.city);
-      setVendors(remote.map(v => ({ ...v, listedPrice: Number(v.listedPrice ?? v.price ?? 0), serviceLabel: SERVICE_META[v.service]?.label || v.service })));
+      const remote = Array.isArray(result.vendors) ? result.vendors : [];
+      const covered = new Set(remote.map(vendor => vendor.service));
+      const missingServices = config.services.filter(service => !covered.has(service));
+      const localFill = getLocalVendors(config.eventType, missingServices, config.city);
+      const combined = [...remote, ...localFill];
+      const unique = [...new Map(combined.map(vendor => [vendor.id, vendor])).values()];
+      setVendors(unique.map(v => ({ ...v, listedPrice: Number(v.listedPrice ?? v.price ?? 0), serviceLabel: SERVICE_META[v.service]?.label || v.service })));
     } catch {
       setVendors(getLocalVendors(config.eventType, config.services, config.city).map(v => ({ ...v, serviceLabel: SERVICE_META[v.service]?.label || v.service })));
     } finally {
@@ -381,7 +411,7 @@ export default function App() {
   const launchNegotiation = async () => { await negotiate(false); go(3); };
   const restart = () => {
     go(0); setDates(initialDates()); setVendors([]); setSelected({}); setRound(1); setQuoteId(null); setStatus('Awaiting funding'); setError('');
-    setConfig({ eventType: 'wedding', services: ['venue', 'catering', 'decor'], guestCount: '120', city: 'New Delhi', vision: 'A candlelit garden celebration with thoughtful details.', budget: '18000' });
+    setConfig({ eventType: 'wedding', services: ['venue', 'catering', 'decor', 'photography', 'mehendi', 'entertainment'], guestCount: '120', city: 'New Delhi', vision: 'A candlelit garden celebration with thoughtful details.', budget: '18000' });
   };
 
   return <div className="app-shell">
