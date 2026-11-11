@@ -58,7 +58,9 @@ function Progress({ step, onStep }) {
 }
 
 function Heading({ eyebrow, title, detail, aside }) {
-  return <div className="stage-heading"><div><span className="eyebrow">{eyebrow}</span><h1 className="display-title">{title}</h1>{detail && <p className="muted">{detail}</p>}</div>{aside && <div>{aside}</div>}</div>;
+  return <motion.div className="stage-heading" initial={{ opacity: 0, y: 28, filter: 'blur(7px)' }} whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }} viewport={{ once: true, amount: .18 }} transition={{ duration: .78, ease: EASE }}>
+    <div><span className="eyebrow">{eyebrow}</span><h1 className="display-title">{title}</h1>{detail && <p className="muted">{detail}</p>}</div>{aside && <div>{aside}</div>}
+  </motion.div>;
 }
 
 function Footer({ back, next, nextText, disabled = false, note }) {
@@ -101,6 +103,7 @@ function OccasionStage({ config, setConfig, next }) {
       <div className="overline"><span /> AUTONOMOUS EVENT NEGOTIATION</div>
       <h1 className="hero-title">Moments that move people.<em>Orchestrated by autonomous AI.</em></h1>
       <p className="hero-lede">One brief. A circle of exceptional vendors. A smarter way to bring every detail together.</p>
+      <div className="hero-scroll-cue"><span className="hero-scroll-line" /><span>SCROLL TO COMPOSE YOUR MOMENT</span><span className="hero-scroll-count">01 — 06</span></div>
       <div className="section-label"><b>01</b><strong>What are we gathering for?</strong><small>CHOOSE AN OCCASION</small></div>
       <div className="occasion-cards">
         {EVENT_TYPES.map(event => <motion.button key={event.id} type="button" className={`occasion-card ${config.eventType === event.id ? 'selected' : ''}`} whileHover={{ y: -4 }} whileTap={{ scale: .99 }} onClick={() => setConfig(c => ({ ...c, eventType: event.id }))}>
@@ -131,7 +134,7 @@ function Marketplace({ vendors, selected, onSelect, config, onBack, onContinue }
       {config.services.map(service => {
         const options = vendors.filter(v => v.service === service);
         const Icon = ICONS[service];
-        return <section className="market-section" key={service}>
+        return <motion.section className="market-section" key={service} initial={{ opacity: 0, y: 36, filter: 'blur(5px)' }} whileInView={{ opacity: 1, y: 0, filter: 'blur(0px)' }} viewport={{ once: true, amount: .12 }} transition={{ duration: .75, ease: EASE }}>
           <div className="market-section-title"><span className="service-icon"><Icon size={17} /></span><div><h3>{SERVICE_META[service]?.label || service}</h3><small>{options.length} matching partners</small></div><span className="market-chosen">{options.length ? 'SWIPE TO EXPLORE' : 'NO MATCHES'}</span></div>
           <div className="vendor-options" aria-label={`${SERVICE_META[service]?.label || service} vendor collection`}>{options.map((vendor, index) => {
             const active = selected[service] === vendor.id;
@@ -142,7 +145,7 @@ function Marketplace({ vendors, selected, onSelect, config, onBack, onContinue }
               <span className="vendor-select">{active ? <CheckCircle2 size={18} /> : <Plus size={18} />}</span>
             </motion.button>;
           })}</div>
-        </section>;
+        </motion.section>;
       })}
     </div>
     <div className="stage-footer"><button className="text-button" onClick={onBack}><ArrowLeft size={15} /> Back to dates</button><span className="footer-note">{chosen.length} of {config.services.length} services selected</span><button className="button button-dark" disabled={chosen.length !== config.services.length} onClick={onContinue}>Enter negotiation <ArrowRight size={16} /></button></div>
@@ -159,7 +162,7 @@ function NegotiationStage({ vendors, round, busy, error, onHarder, onBack, onCon
       {vendors.map((vendor, index) => {
         const current = getPrice(vendor);
         const saved = Math.max(0, Number(vendor.listedPrice) - current);
-        return <motion.article layout key={vendor.id} className="negotiation-card" initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: index * .06, ...transition }}>
+        return <motion.article layout key={vendor.id} className="negotiation-card" initial={{ opacity: 0, y: 28, scale: .985 }} whileInView={{ opacity: 1, y: 0, scale: 1 }} viewport={{ once: true, amount: .18 }} transition={{ delay: index * .07, duration: .72, ease: EASE }}>
           <div className="neg-vendor"><img src={vendor.image} alt="" /><div><small>{SERVICE_META[vendor.service]?.label || vendor.service}</small><strong>{vendor.name}</strong><span><BadgeCheck size={12} /> Partner quote</span></div></div>
           <div className="offer-flow"><div><small>LISTED QUOTE</small><strong>{formatMoney(vendor.listedPrice)}</strong></div><div className="offer-arrow"><ArrowRight size={16} /></div><div><small>PACTAI OFFER</small><strong className="gold-figure">{formatMoney(current)}</strong></div></div>
           <p className="negotiation-reason">{vendor.strategy || 'The agent used the combined service brief and date flexibility to request a sharper package rate.'}</p>
@@ -182,10 +185,10 @@ function LedgerStage({ vendors, dates, status, onBack, onContinue }) {
   return <div className="stage-body">
     <Heading eyebrow="PAYMENT SCHEDULE · VENDOR ALLOCATION" title="Every promise, accounted for." detail="A transparent plan for the proposed payments across the selected vendor circle." aside={<span className="quiet-badge"><ShieldCheck size={13} /> {status}</span>} />
     <div className="ledger-summary">
-      <div><small>LISTED TOTAL</small><strong>{formatMoney(listed)}</strong></div><div><small>NEGOTIATED TOTAL</small><strong>{formatMoney(agreed)}</strong></div><div><small>YOU KEEP</small><strong className="sage-figure">{formatMoney(listed - agreed)}</strong></div><div><small>VENDORS</small><strong>{vendors.length}</strong></div>
+      <motion.div initial={{ opacity: 0, y: 22 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: .6 }}><small>LISTED TOTAL</small><strong>{formatMoney(listed)}</strong></motion.div><motion.div initial={{ opacity: 0, y: 22 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: .6, delay: .08 }}><small>NEGOTIATED TOTAL</small><strong>{formatMoney(agreed)}</strong></motion.div><motion.div initial={{ opacity: 0, y: 22 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: .6, delay: .16 }}><small>YOU KEEP</small><strong className="sage-figure">{formatMoney(listed - agreed)}</strong></motion.div><motion.div initial={{ opacity: 0, y: 22 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: .6, delay: .24 }}><small>VENDORS</small><strong>{vendors.length}</strong></motion.div>
     </div>
     <div className="milestone-grid">
-      {[{ title: 'Initial deposit', date: dates.depositDate, pct: '30%', amount: deposit, detail: 'Proposed funding checkpoint' }, { title: 'Midway audit', date: dates.auditDate, pct: '40%', amount: midway, detail: 'After progress sign-off' }, { title: 'Final release', date: dates.releaseDate, pct: '30%', amount: final, detail: 'After completion review' }].map((item, i) => <div className="milestone-card" key={item.title}><span className="milestone-index">0{i + 1}</span><small>{item.pct} ALLOCATION</small><strong>{item.title}</strong><b>{formatMoney(item.amount)}</b><span>{item.date}</span><em>{item.detail}</em></div>)}
+      {[{ title: 'Initial deposit', date: dates.depositDate, pct: '30%', amount: deposit, detail: 'Proposed funding checkpoint' }, { title: 'Midway audit', date: dates.auditDate, pct: '40%', amount: midway, detail: 'After progress sign-off' }, { title: 'Final release', date: dates.releaseDate, pct: '30%', amount: final, detail: 'After completion review' }].map((item, i) => <motion.div className="milestone-card" key={item.title} initial={{ opacity: 0, y: 30, rotateX: -5 }} whileInView={{ opacity: 1, y: 0, rotateX: 0 }} viewport={{ once: true, amount: .2 }} transition={{ duration: .7, delay: i * .1, ease: EASE }}><span className="milestone-index">0{i + 1}</span><small>{item.pct} ALLOCATION</small><strong>{item.title}</strong><b>{formatMoney(item.amount)}</b><span>{item.date}</span><em>{item.detail}</em></motion.div>)}
     </div>
     <BudgetGrid vendors={vendors} dates={dates} escrowStatus={status} />
     <div className="stage-footer"><button className="text-button" onClick={onBack}><ArrowLeft size={15} /> Back to negotiation</button><span className="footer-note">Milestone schedule is a planning record.</span><button className="button button-dark" onClick={onContinue}>Proceed to PayPal <ArrowRight size={16} /></button></div>
@@ -253,14 +256,14 @@ function CheckoutStage({ vendors, dates, quoteId, onBack, onRestart, setStatus, 
   return <div className="stage-body checkout-stage">
     <Heading eyebrow="PAYPAL SANDBOX · UNIFIED CHECKOUT" title="A considered close to the plan." detail="Review the negotiated bundle, then fund the order in Sandbox or explore the local demo flow." />
     <div className="checkout-layout">
-      <section className="panel checkout-panel">
+      <motion.section className="panel checkout-panel" initial={{ opacity: 0, y: 26 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: .7, ease: EASE }}>
         <div className="checkout-panel-head"><div className="paypal-wordmark">Pay<span>Pal</span></div><span className={funded ? 'status-funded' : 'status-pending'}>{funded ? 'PAYMENT RECORDED' : 'AWAITING CHECKOUT'}</span></div>
         <div className="checkout-total"><small>PROPOSED BUNDLE TOTAL</small><strong>{formatMoney(total)}</strong><span>{vendors.length} selected vendor services · {dates.eventDate}</span></div>
         <div className="checkout-vendors">{vendors.map(v => <div className="checkout-vendor" key={v.id}><span>{SERVICE_META[v.service]?.label || v.service}</span><strong>{v.name}</strong><b>{formatMoney(getPrice(v))}</b></div>)}</div>
         {funded ? <div className="payment-confirmation"><CheckCircle2 size={17} /><div><strong>{receipt.mode === 'paypal' ? 'PayPal capture confirmed' : 'Demo checkout recorded'}</strong><small>Reference: {receipt.id}</small></div></div> : <div className="paypal-action">{paymentControl}<small>{PAYPAL_CLIENT_ID ? 'PayPal Sandbox · secure server capture' : 'Demo mode · no real payment or card charge'}</small></div>}
         <div className="checkout-disclaimer"><LockKeyhole size={14} /><p><strong>Payment clarity.</strong> Standard PayPal Checkout captures funds to the merchant account. This milestone ledger is an orchestration record, not a regulated escrow account or a custodied balance.</p></div>
-      </section>
-      <aside className="panel refund-panel">
+      </motion.section>
+      <motion.aside className="panel refund-panel" initial={{ opacity: 0, y: 26 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: .7, delay: .12, ease: EASE }}>
         <div className="refund-heading"><span className="refund-icon"><HeartHandshake size={18} /></span><div><span className="eyebrow">AUTONOMOUS REFUND GUARD</span><h2 className="serif-title">Plans can change.</h2></div></div>
         <p>Describe what needs to be cancelled. PactAI will match the request to a selected vendor service.</p>
         <form onSubmit={refund} className="refund-form"><label htmlFor="refund-command">YOUR REQUEST</label><div className="refund-input"><input id="refund-command" value={command} onChange={e => setCommand(e.target.value)} placeholder="Cancel the guest transport…" disabled={!funded || busy} /><button type="submit" disabled={!funded || busy || !command.trim()} aria-label="Submit refund request">{busy ? <RefreshCw size={15} className="spin" /> : <Send size={15} />}</button></div></form>
@@ -268,7 +271,7 @@ function CheckoutStage({ vendors, dates, quoteId, onBack, onRestart, setStatus, 
         {!funded && <div className="refund-gate"><LockKeyhole size={13} /> Complete checkout to activate refunds.</div>}
         {notice && <div className="refund-notice">{notice}</div>}
         <div className="refund-foot"><span><i /> REQUEST PARSER READY</span><span>{vendors.filter(v => /refund|cancel/i.test(v.refundStatus || '')).length} REFUNDS / REMOVALS</span></div>
-      </aside>
+      </motion.aside>
     </div>
     <div className="stage-footer"><button className="text-button" onClick={onBack}><ArrowLeft size={15} /> Back to ledger</button><span className="footer-note"><ShieldCheck size={13} /> Secure by design</span><button className="button button-outline" onClick={onRestart}><RotateCcw size={14} /> Plan another event</button></div>
   </div>;
@@ -292,16 +295,37 @@ export default function App() {
   const [status, setStatus] = useState('Awaiting funding');
   const [error, setError] = useState('');
   const [curtainPhase, setCurtainPhase] = useState('idle');
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const [isScrolled, setIsScrolled] = useState(false);
   const transitionTimers = useRef([]);
 
   useEffect(() => () => transitionTimers.current.forEach(window.clearTimeout), []);
+
+  useEffect(() => {
+    const updateScrollState = () => {
+      const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+      setScrollProgress(maxScroll > 0 ? Math.min(1, window.scrollY / maxScroll) : 0);
+      setIsScrolled(window.scrollY > 12);
+    };
+    updateScrollState();
+    window.addEventListener('scroll', updateScrollState, { passive: true });
+    window.addEventListener('resize', updateScrollState);
+    return () => {
+      window.removeEventListener('scroll', updateScrollState);
+      window.removeEventListener('resize', updateScrollState);
+    };
+  }, []);
 
   const go = (target) => {
     setError('');
     transitionTimers.current.forEach(window.clearTimeout);
     setCurtainPhase('cover');
     transitionTimers.current = [
-      window.setTimeout(() => { setStep(target); setCurtainPhase('reveal'); }, 420),
+      window.setTimeout(() => {
+        setStep(target);
+        setCurtainPhase('reveal');
+        window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+      }, 420),
       window.setTimeout(() => setCurtainPhase('idle'), 1110)
     ];
   };
@@ -361,9 +385,10 @@ export default function App() {
   };
 
   return <div className="app-shell">
+    <div className="scroll-progress-bar" aria-hidden="true"><span style={{ transform: `scaleX(${scrollProgress})` }} /></div>
     <div className="ambient-scene" aria-hidden="true"><i className="ambient-orb orb-one" /><i className="ambient-orb orb-two" /><i className="ambient-orb orb-three" /><span className="ambient-spark spark-one">✦</span><span className="ambient-spark spark-two">✧</span></div>
     {curtainPhase !== 'idle' && <motion.div className="transition-curtain" initial={{ scaleY: 0 }} animate={{ scaleY: curtainPhase === 'cover' ? 1 : 0 }} transition={{ duration: curtainPhase === 'cover' ? .4 : .62, ease: EASE }} style={{ transformOrigin: curtainPhase === 'cover' ? 'bottom' : 'top' }} aria-hidden="true"><div className="curtain-brand">p<span>.</span></div><div className="curtain-message">MAKE IT A MOMENT<small>PACTAI · EVENT PROTOCOL</small></div><div className="curtain-orbit orbit-a" /><div className="curtain-orbit orbit-b" /></motion.div>}
-    <header className="app-header"><Brand /><div className="header-meta"><span className="header-dot" /><Sparkles size={13} /> AUTONOMOUS EVENT COMMERCE <i>·</i> PAYPAL HACKATHON BUILD</div><div className="header-trust"><ShieldCheck size={14} /> PRIVATE BY DESIGN</div></header>
+    <header className={`app-header ${isScrolled ? 'scrolled' : ''}`}><Brand /><div className="header-meta"><span className="header-dot" /><Sparkles size={13} /> AUTONOMOUS EVENT COMMERCE <i>·</i> PAYPAL HACKATHON BUILD</div><div className="header-trust"><ShieldCheck size={14} /> PRIVATE BY DESIGN</div></header>
     <Progress step={step} onStep={go} />
     <main className="app-main">
       <AnimatePresence mode="wait" initial={false}>
