@@ -21,17 +21,17 @@ const ICONS = {
   cake: CakeSlice, planner: ClipboardList, fashion: Shirt
 };
 const SERVICE_TERMS = {
-  venue: /\\b(venue|banquet|hall|resort|farmhouse|lawn)\\b/i,
-  catering: /\\b(catering|food|menu|buffet)\\b/i,
-  decor: /\\b(decor|floral|stage|mandap)\\b/i,
-  photography: /\\b(photo|photography|cinema|film|drone)\\b/i,
-  makeup: /\\b(makeup|make-up|hair|styling)\\b/i,
-  mehendi: /\\b(mehendi|mehndi|henna)\\b/i,
-  entertainment: /\\b(dj|music|band|anchor|sound|entertainment)\\b/i,
-  transport: /\\b(transport|shuttle|cab|car|transfer)\\b/i,
-  cake: /\\b(cake|dessert|bakery)\\b/i,
-  planner: /\\b(planner|planning|coordination|event manager)\\b/i,
-  fashion: /\\b(bride|bridal|groom|sherwani|jewellery|fashion)\\b/i
+  venue: /\b(venue|banquet|hall|resort|farmhouse|lawn)\b/i,
+  catering: /\b(catering|food|menu|buffet)\b/i,
+  decor: /\b(decor|floral|stage|mandap)\b/i,
+  photography: /\b(photo|photography|cinema|film|drone)\b/i,
+  makeup: /\b(makeup|make-up|hair|styling)\b/i,
+  mehendi: /\b(mehendi|mehndi|henna)\b/i,
+  entertainment: /\b(dj|music|band|anchor|sound|entertainment)\b/i,
+  transport: /\b(transport|shuttle|cab|car|transfer)\b/i,
+  cake: /\b(cake|dessert|bakery)\b/i,
+  planner: /\b(planner|planning|coordination|event manager)\b/i,
+  fashion: /\b(bride|bridal|groom|sherwani|jewellery|fashion)\b/i
 };
 const EASE = [0.22, 1, 0.36, 1];
 const transition = { duration: 0.48, ease: EASE };
