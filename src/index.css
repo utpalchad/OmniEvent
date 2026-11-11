@@ -1525,3 +1525,123 @@ button:focus-visible, input:focus-visible {
     transition-duration: .01ms !important;
   }
 }
+
+
+/* Expanded Indian celebration catalogue */
+.occasion-group {
+  padding: 12px 0 15px;
+  border-bottom: 1px solid rgba(217,207,190,.72);
+}
+.occasion-group-heading {
+  display: flex; align-items: center; gap: 11px;
+  margin: 0 0 11px;
+}
+.occasion-group-heading > span {
+  display: grid; place-items: center;
+  width: 27px; height: 27px; flex: 0 0 27px;
+  border: 1px solid rgba(196,155,92,.45);
+  border-radius: 50%;
+  color: #a27e49; background: rgba(255,253,248,.8);
+  font: 9px var(--mono);
+}
+.occasion-group-heading strong {
+  color: #263d30; font: 500 23px/1 var(--serif);
+}
+.occasion-group-heading small {
+  margin-left: auto; color: #9a907f;
+  font: 8px var(--mono); letter-spacing: .9px;
+}
+.occasion-group .occasion-cards {
+  grid-template-columns: repeat(4,minmax(0,1fr));
+  gap: 9px;
+}
+.occasion-group .occasion-card {
+  min-height: 100px;
+  border-radius: 13px;
+  padding: 12px;
+  background: rgba(255,253,248,.82);
+}
+.occasion-group .occasion-card strong {
+  font-size: 10px; color: #293d32;
+}
+.occasion-group .occasion-card small {
+  font-size: 8px; line-height: 1.4;
+}
+.occasion-group .occasion-emoji {
+  font-size: 22px;
+}
+.service-grid {
+  grid-template-columns: repeat(3,minmax(0,1fr));
+  gap: 10px;
+}
+.service-chip {
+  align-items: center; gap: 10px;
+  min-height: 66px; height: auto;
+  padding: 10px 12px;
+  border-radius: 13px;
+  background: rgba(255,253,249,.86);
+  text-align: left;
+}
+.service-chip-icon {
+  display: grid; place-items: center; flex: 0 0 38px;
+  width: 38px; height: 38px;
+  border-radius: 11px;
+  color: #9a7748;
+  background: linear-gradient(145deg,#f5ecdf,#e9eee5);
+  transition: transform .3s ease, background .3s ease;
+}
+.service-chip:hover .service-chip-icon {
+  transform: translateY(-2px) rotate(-5deg);
+}
+.service-chip.selected .service-chip-icon {
+  color: #fffaf0;
+  background: linear-gradient(145deg,#597c64,#294a37);
+}
+.service-chip-copy {
+  display: flex; flex-direction: column; gap: 4px;
+  min-width: 0; flex: 1;
+}
+.service-chip-copy strong {
+  color: #263d30; font-size: 10px; line-height: 1.2;
+}
+.service-chip-copy small {
+  color: #838579; font-size: 8px; line-height: 1.4;
+  white-space: normal;
+}
+.service-chip.selected .service-chip-copy strong { color: #263d30; }
+.service-chip .chip-check {
+  display: grid; place-items: center;
+  width: 23px; height: 23px; flex: 0 0 23px;
+  border: 1px solid #e5dccd; border-radius: 50%;
+  background: rgba(255,255,255,.72);
+}
+.service-chip.selected .chip-check {
+  border-color: #bed0bf; background: #eaf1e9;
+}
+.marketplace-groups .market-section-title h3 {
+  font-size: clamp(24px,2.3vw,31px);
+}
+.marketplace-groups .market-section-title .service-icon {
+  width: 42px; height: 42px; border-radius: 13px;
+}
+.marketplace-groups .market-chosen {
+  color: #92794f; font-size: 7px;
+}
+.marketplace-groups::after {
+  content: "DEMO COLLECTION · SAMPLE VENDOR PROFILES";
+  display: block; margin: 12px 0 0;
+  color: #9b9386; font: 8px var(--mono); letter-spacing: 1px;
+}
+@media (max-width: 1050px) {
+  .occasion-group .occasion-cards { grid-template-columns: repeat(3,minmax(0,1fr)); }
+  .service-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+@media (max-width: 760px) {
+  .occasion-group { padding: 9px 0 12px; }
+  .occasion-group-heading strong { font-size: 21px; }
+  .occasion-group-heading small { font-size: 7px; }
+  .occasion-group .occasion-cards { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .service-grid { grid-template-columns: 1fr; }
+  .service-chip { min-height: 62px; }
+  .marketplace-groups::after { font-size: 7px; }
+}
