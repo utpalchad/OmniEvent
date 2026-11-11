@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   ArrowLeft, ArrowRight, BadgeCheck, Building2, CalendarDays, Check, CheckCircle2,
@@ -126,17 +126,18 @@ function OccasionStage({ config, setConfig, next }) {
 function Marketplace({ vendors, selected, onSelect, config, onBack, onContinue }) {
   const chosen = config.services.map(service => vendors.find(v => v.service === service && v.id === selected[service])).filter(Boolean);
   return <div className="stage-body">
-    <Heading eyebrow="THE VENDOR CIRCLE · CURATED FOR YOUR BRIEF" title="Good people make good moments." detail={`A considered shortlist for your ${config.eventType} in ${config.city}. Choose one partner in each service.`} aside={<div className="soft-stat"><strong>{vendors.length}</strong><span>CURATED OPTIONS</span></div>} />
+    <Heading eyebrow="THE VENDOR CIRCLE · CURATED FOR YOUR BRIEF" title="Find your people." detail={`A considered shortlist for your ${config.eventType} in ${config.city}. Explore the collection, compare each partner and choose the right fit.`} aside={<div className="soft-stat"><strong>{vendors.length}</strong><span>CURATED OPTIONS</span></div>} />
     <div className="marketplace-groups">
       {config.services.map(service => {
         const options = vendors.filter(v => v.service === service);
         const Icon = ICONS[service];
         return <section className="market-section" key={service}>
-          <div className="market-section-title"><span className="service-icon"><Icon size={17} /></span><div><h3>{SERVICE_META[service]?.label || service}</h3><small>{options.length} matching partners</small></div><span className="market-chosen">{options.length ? 'CHOOSE ONE' : 'NO MATCHES'}</span></div>
-          <div className="vendor-options">{options.map(vendor => {
+          <div className="market-section-title"><span className="service-icon"><Icon size={17} /></span><div><h3>{SERVICE_META[service]?.label || service}</h3><small>{options.length} matching partners</small></div><span className="market-chosen">{options.length ? 'SWIPE TO EXPLORE' : 'NO MATCHES'}</span></div>
+          <div className="vendor-options" aria-label={`${SERVICE_META[service]?.label || service} vendor collection`}>{options.map((vendor, index) => {
             const active = selected[service] === vendor.id;
-            return <motion.button key={vendor.id} type="button" className={`vendor-option ${active ? 'selected' : ''}`} whileHover={{ y: -4 }} whileTap={{ scale: .99 }} onClick={() => onSelect(service, vendor.id)}>
-              <img src={vendor.image} alt={vendor.name} />
+            return <motion.button key={vendor.id} type="button" className={`vendor-option ${active ? 'selected' : ''}`} initial={{ opacity: 0, y: 24, scale: .97 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ delay: index * .075, ...transition }} whileHover={{ y: -7, scale: 1.012 }} whileTap={{ scale: .985 }} onClick={() => onSelect(service, vendor.id)}>
+              <img className="vendor-image" src={vendor.image} alt={vendor.name} />
+              <span className="vendor-card-index">{String(index + 1).padStart(2, '0')} / {String(options.length).padStart(2, '0')}</span>
               <span className="vendor-info"><strong>{vendor.name}</strong><small>{vendor.tag || vendor.city} · up to {Number(vendor.capacity || 0).toLocaleString()} guests</small><span className="vendor-rating"><Star size={11} fill="currentColor" /> {vendor.rating || '4.8'} <b>·</b> {formatMoney(vendor.listedPrice)}</span></span>
               <span className="vendor-select">{active ? <CheckCircle2 size={18} /> : <Plus size={18} />}</span>
             </motion.button>;
@@ -290,8 +291,20 @@ export default function App() {
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('Awaiting funding');
   const [error, setError] = useState('');
+  const [curtainPhase, setCurtainPhase] = useState('idle');
+  const transitionTimers = useRef([]);
 
-  const go = (target) => { setError(''); setStep(target); };
+  useEffect(() => () => transitionTimers.current.forEach(window.clearTimeout), []);
+
+  const go = (target) => {
+    setError('');
+    transitionTimers.current.forEach(window.clearTimeout);
+    setCurtainPhase('cover');
+    transitionTimers.current = [
+      window.setTimeout(() => { setStep(target); setCurtainPhase('reveal'); }, 420),
+      window.setTimeout(() => setCurtainPhase('idle'), 1110)
+    ];
+  };
   const chosen = useMemo(() => config.services.map(service => vendors.find(v => v.service === service && v.id === selected[service])).filter(Boolean), [vendors, selected, config.services]);
 
   useEffect(() => {
@@ -343,17 +356,18 @@ export default function App() {
 
   const launchNegotiation = async () => { await negotiate(false); go(3); };
   const restart = () => {
-    setStep(0); setDates(initialDates()); setVendors([]); setSelected({}); setRound(1); setQuoteId(null); setStatus('Awaiting funding'); setError('');
+    go(0); setDates(initialDates()); setVendors([]); setSelected({}); setRound(1); setQuoteId(null); setStatus('Awaiting funding'); setError('');
     setConfig({ eventType: 'wedding', services: ['venue', 'catering', 'decor'], guestCount: '120', city: 'New Delhi', vision: 'A candlelit garden celebration with thoughtful details.', budget: '18000' });
   };
 
   return <div className="app-shell">
     <div className="ambient-scene" aria-hidden="true"><i className="ambient-orb orb-one" /><i className="ambient-orb orb-two" /><i className="ambient-orb orb-three" /><span className="ambient-spark spark-one">✦</span><span className="ambient-spark spark-two">✧</span></div>
+    {curtainPhase !== 'idle' && <motion.div className="transition-curtain" initial={{ scaleY: 0 }} animate={{ scaleY: curtainPhase === 'cover' ? 1 : 0 }} transition={{ duration: curtainPhase === 'cover' ? .4 : .62, ease: EASE }} style={{ transformOrigin: curtainPhase === 'cover' ? 'bottom' : 'top' }} aria-hidden="true"><div className="curtain-brand">p<span>.</span></div><div className="curtain-message">MAKE IT A MOMENT<small>PACTAI · EVENT PROTOCOL</small></div><div className="curtain-orbit orbit-a" /><div className="curtain-orbit orbit-b" /></motion.div>}
     <header className="app-header"><Brand /><div className="header-meta"><span className="header-dot" /><Sparkles size={13} /> AUTONOMOUS EVENT COMMERCE <i>·</i> PAYPAL HACKATHON BUILD</div><div className="header-trust"><ShieldCheck size={14} /> PRIVATE BY DESIGN</div></header>
     <Progress step={step} onStep={go} />
     <main className="app-main">
       <AnimatePresence mode="wait" initial={false}>
-        <motion.section key={step} className="wizard-stage" initial={{ opacity: 0, y: 20, scale: .985 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -18, scale: .985 }} transition={transition}>
+        <motion.section key={step} className="wizard-stage" initial={{ opacity: 0, y: 28, scale: .985, filter: 'blur(8px)' }} animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }} exit={{ opacity: 0, y: -20, scale: .99, filter: 'blur(6px)' }} transition={{ duration: .58, ease: EASE }}>
           {step === 0 && <OccasionStage config={config} setConfig={setConfig} next={() => { setDates(initialDates()); go(1); }} />}
           {step === 1 && <div className="stage-body"><Heading eyebrow="EVENT CALENDAR · SETUP & PAYMENT MILESTONES" title="Choose the moments." detail="Set the event day, vendor setup window and three clear payment checkpoints." /><CalendarPlanner dates={dates} onChange={setDates} setupTime={setupTime} onSetupTimeChange={setSetupTime} /><Footer back={() => go(0)} next={loadVendors} nextText={busy ? 'Finding partners…' : 'Browse curated vendors'} disabled={busy} note="Availability indicators are illustrative demo signals." /></div>}
           {step === 2 && <Marketplace vendors={vendors} selected={selected} onSelect={(service, id) => setSelected(current => ({ ...current, [service]: id }))} config={config} onBack={() => go(1)} onContinue={launchNegotiation} />}
