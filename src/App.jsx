@@ -624,7 +624,7 @@ export default function App() {
     setVendors([]);
     setSelected({});
     setRound(0);
-    setTarget('19000');
+    setTarget('330000');
     setNegotiationSummary('');
     setNegotiationError('');
     setStatus('Awaiting funding');
@@ -632,8 +632,12 @@ export default function App() {
     setPaymentReference('');
     setPaypalOpen(false);
     setConfig({
-      eventType: 'wedding', services: ['venue', 'catering', 'decor', 'photography', 'mehendi', 'entertainment'],
-      guestCount: '120', city: 'New Delhi', vision: 'A candlelit garden celebration with thoughtful details.', budget: '18000'
+      eventType: 'corporate',
+      services: ['venue', 'catering', 'decor', 'photography', 'sound_lighting', 'entertainment', 'security', 'rentals'],
+      guestCount: '300',
+      city: 'New Delhi',
+      vision: 'Annual Tech Gala 2026 — a premium year-end technology celebration with keynote moments, dinner, live entertainment and an awards programme.',
+      budget: '400000'
     });
   };
 
