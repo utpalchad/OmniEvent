@@ -176,6 +176,24 @@ async function countRows(admin: ReturnType<typeof createClient>, table: string, 
 // it fills only empty tables, and re-upserts only the records it owns.
 export async function seedDatabase(admin: ReturnType<typeof createClient>) {
   const summary: Record<string, unknown> = { vendors: 0, event: false, milestones: 0, ledgerRows: 0, skipped: [] as string[] };
+
+  // Treat every application/demo table as an all-or-nothing seed boundary.
+  // If real records already exist, leave every table untouched. If a previous
+  // seed was interrupted, demo-only rows may be safely completed with upserts.
+  const managedTables = [
+    "vendor_profiles", "vendor_services", "customer_profiles", "customer_events",
+    "enquiries", "bookings", "earnings", "demo_event_milestones", "demo_payment_ledger"
+  ];
+  for (const table of managedTables) {
+    const totalRows = await countRows(admin, table);
+    const demoRows = await countRows(admin, table, true);
+    if (totalRows > demoRows) {
+      (summary.skipped as string[]).push(
+        `Seed skipped: ${table} already contains non-demo records. No existing records were changed.`
+      );
+      return summary;
+    }
+  }
   const profileCount = await countRows(admin, "vendor_profiles");
   const demoProfileCount = await countRows(admin, "vendor_profiles", true);
   const maySeedVendors = profileCount === 0 || demoProfileCount > 0;
