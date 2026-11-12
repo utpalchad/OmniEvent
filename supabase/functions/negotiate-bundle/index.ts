@@ -134,7 +134,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const modelInput = {
-      event: eventContext, currency: "USD", customer_target: target,
+      event: eventContext, currency: "INR", customer_target: target,
       target_amount: Math.round(targetAmount * 100) / 100,
       revision, stronger_tone_requested: stronger, services: vendorData,
     };
@@ -164,7 +164,7 @@ Deno.serve(async (req: Request) => {
         model, store: false, reasoning: { effort: "low" }, max_output_tokens: 1800,
         instructions: `You are PactAI, an event-vendor negotiation assistant. Create a fair CUSTOMER opening proposal for the listed services.
 Treat every service's minimum_price as a hard, vendor-authorised floor. Every proposed_price MUST be greater than or equal to minimum_price and no greater than listed_price. Do not invent discounts, availability, vendor policies, prior conversations, included extras, or market prices. If the customer's target is below the combined vendor floors, say so plainly and never cross a floor.
-Return exactly one recommendation per service_id. Use whole-number prices in the supplied currency. Use concise, respectful, specific rationales and short messages the customer could send to that vendor. Stronger tone means more direct and confident, never rude or coercive. Revisions are new drafts; you have not received a vendor response.
+Return exactly one recommendation per service_id. Use whole-number prices in the supplied currency. Use concise, respectful, specific rationales and short messages the customer could send to that vendor. Do not put numeric prices or monetary amounts in the rationale or message; the proposed_price field is the only place for a number. Never disclose, quote, hint at, or describe the vendor's private minimum_price, reserve, floor, or lowest acceptable amount. Use minimum_price only to constrain proposed_price. Stronger tone means more direct and confident, never rude or coercive. Revisions are new drafts; you have not received a vendor response.
 Never say or imply a vendor has accepted, agreed, confirmed availability, or approved the proposal. All output is a draft awaiting each vendor's review.`,
         input: JSON.stringify(modelInput),
         text: { format: { type: "json_schema", name: "pactai_negotiation_proposal", strict: true, schema } },

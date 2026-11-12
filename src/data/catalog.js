@@ -93,10 +93,10 @@ export function getLocalVendors(eventType = 'wedding', services = Object.keys(SE
     .map((vendor) => ({ ...vendor, city: normalizedCity }));
 }
 
-export function formatMoney(value, currency = 'USD') {
+export function formatMoney(value, currency = 'INR') {
   const amount = Number(value);
-  if (!Number.isFinite(amount)) return '$0';
-  return new Intl.NumberFormat('en-US', {
+  if (!Number.isFinite(amount)) return '₹0';
+  return new Intl.NumberFormat('en-IN', {
     style: 'currency', currency, maximumFractionDigits: 0,
   }).format(amount);
 }

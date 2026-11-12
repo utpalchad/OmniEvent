@@ -90,7 +90,7 @@ function parseTarget(value, listedTotal) {
     if (!Number.isFinite(pct) || pct < 0 || pct > 80) return null;
     return listedTotal * (1 - pct / 100);
   }
-  const amount = Number(raw.replace(/[$,\s]/g, ''));
+  const amount = Number(raw.replace(/[₹$,\s]/g, ''));
   return Number.isFinite(amount) && amount > 0 ? amount : null;
 }
 
@@ -222,7 +222,7 @@ function OccasionStage({ config, setConfig, next }) {
         <label className="field"><span>GUEST COUNT</span><input type="number" min="1" max="5000" value={config.guestCount} onChange={e => setConfig(current => ({ ...current, guestCount: e.target.value }))} /></label>
         <label className="field"><span>CITY</span><div className="input-icon"><MapPin size={14} /><input value={config.city} onChange={e => setConfig(current => ({ ...current, city: e.target.value }))} /></div></label>
         <label className="field field-wide"><span>YOUR VISION</span><input value={config.vision} onChange={e => setConfig(current => ({ ...current, vision: e.target.value }))} placeholder="A candlelit garden celebration with thoughtful details…" /></label>
-        <label className="field"><span>MAXIMUM TARGET BUDGET · USD</span><div className="input-icon"><b>$</b><input type="number" min="100" value={config.budget} onChange={e => setConfig(current => ({ ...current, budget: e.target.value }))} /></div></label>
+        <label className="field"><span>MAXIMUM TARGET BUDGET · INR</span><div className="input-icon"><b>₹</b><input type="number" min="100" value={config.budget} onChange={e => setConfig(current => ({ ...current, budget: e.target.value }))} /></div></label>
       </div>
       <div className="occasion-actions"><span className="fine-print">Bundle tier updates as your service circle grows.</span><button type="button" className="button button-dark" disabled={!config.services.length || !Number(config.guestCount) || !config.city.trim()} onClick={next}>Select dates <ArrowRight size={16} /></button></div>
     </section>
@@ -279,7 +279,7 @@ function NegotiationStage({ vendors, round, busy, target, setTarget, onTargetNeg
     {aiError && <div className="vp-message" role="alert">{aiError}</div>}
     {aiSummary && <div className="panel negotiation-ai-summary"><span className="eyebrow">PACTAI'S NEGOTIATION STRATEGY</span><p>{aiSummary}</p></div>}
     <div className="negotiation-target panel">
-      <label htmlFor="target-budget"><span className="eyebrow">YOUR TARGET BUNDLE BUDGET ($) OR DESIRED DISCOUNT (%)</span>
+      <label htmlFor="target-budget"><span className="eyebrow">YOUR TARGET BUNDLE BUDGET (₹) OR DESIRED DISCOUNT (%)</span>
         <input id="target-budget" value={target} onChange={e => setTarget(e.target.value)} placeholder="e.g. 19000 or 15%" />
       </label>
       <p>AI considers the event brief and the minimum price each vendor has authorised. A target below those minimums cannot be promised.</p>
