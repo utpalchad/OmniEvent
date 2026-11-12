@@ -1,0 +1,10 @@
+-- Run in Supabase SQL Editor. Create a public Storage bucket named vendor-media separately.
+create table if not exists public.vendor_profiles (id uuid primary key references auth.users(id) on delete cascade,full_name text not null,business_name text not null,phone text not null,category text not null,city text not null,description text default '',address text default '',service_locations text default '',years_experience text default '',instagram_url text default '',website_url text default '',is_published boolean default false,created_at timestamptz default now(),updated_at timestamptz default now());
+create table if not exists public.vendor_services (id uuid primary key default gen_random_uuid(),vendor_id uuid not null references public.vendor_profiles(id) on delete cascade,name text not null,category text not null,description text default '',price numeric not null check(price>=0),is_published boolean default false,created_at timestamptz default now());
+alter table public.vendor_profiles enable row level security; alter table public.vendor_services enable row level security;
+create policy "vendors manage own profile" on public.vendor_profiles for all using(auth.uid()=id) with check(auth.uid()=id);
+create policy "vendors manage own services" on public.vendor_services for all using(auth.uid()=vendor_id) with check(auth.uid()=vendor_id);
+create policy "customers read published shops" on public.vendor_profiles for select using(is_published);
+create policy "customers read published services" on public.vendor_services for select using(is_published and exists(select 1 from public.vendor_profiles p where p.id=vendor_id and p.is_published));
+-- Storage policy example (bucket must be created in Dashboard):
+create policy "vendors manage their media" on storage.objects for all using(bucket_id='vendor-media' and auth.uid()::text=(storage.foldername(name))[1]) with check(bucket_id='vendor-media' and auth.uid()::text=(storage.foldername(name))[1]);
