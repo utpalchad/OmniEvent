@@ -309,25 +309,25 @@ function NegotiationStage({ vendors, round, busy, target, setTarget, onTargetNeg
   const finalPrice = vendors.reduce((total, vendor) => total + getPrice(vendor), 0);
   const saving = listPrice - finalPrice;
   return <div className="stage-body">
-    <Heading eyebrow="PACTAI NEGOTIATION ENGINE · FLOOR-SAFE OFFERS" title="Let the terms get better."
-      detail="Set a bundle amount or discount target. PactAI spreads the requested saving across your selected vendors without crossing a modeled vendor floor."
+    <Heading eyebrow="PACTAI BUNDLE PLANNING · INDICATIVE ESTIMATES" title="Shape your proposal."
+      detail="Adjust a planning target to prepare an offer for your selected vendors. These figures are estimates only; each vendor must confirm availability and their final quote."
       aside={<div className="round-stamp"><span>ROUND</span><strong>{String(round).padStart(2, '0')}</strong><small>{busy ? 'WORKING' : 'READY'}</small></div>} />
-    <div className="negotiation-toolbar"><div className="agent-status"><span className="sage-dot" />{busy ? 'AGENT IS REASSESSING OFFERS' : 'NEGOTIATION LOOP READY'}</div><span className="mono">BUNDLE / FLOOR-SAFE MODE</span></div>
+    <div className="negotiation-toolbar"><div className="agent-status"><span className="sage-dot" />{busy ? 'RECALCULATING YOUR ESTIMATE' : 'PLANNING ESTIMATE READY'}</div><span className="mono">BUNDLE / INDICATIVE MODE</span></div>
     <div className="negotiation-target panel">
       <label htmlFor="target-budget"><span className="eyebrow">YOUR TARGET BUNDLE BUDGET ($) OR DESIRED DISCOUNT (%)</span>
         <input id="target-budget" value={target} onChange={e => setTarget(e.target.value)} placeholder="e.g. 19000 or 20%" />
       </label>
-      <p>Enter <strong>$19,000</strong> for a bundle target or <strong>20%</strong> for a desired discount. Offers stop at each vendor's modeled floor.</p>
-      <button type="button" className="button button-dark" disabled={busy || !vendors.length} onClick={onTargetNegotiate}><Sparkles size={15} /> Negotiate Near Target</button>
+      <p>Enter a target bundle amount or desired discount. The resulting figures are planning estimates, not vendor-approved quotes.</p>
+      <button type="button" className="button button-dark" disabled={busy || !vendors.length} onClick={onTargetNegotiate}><Sparkles size={15} /> Recalculate estimate</button>
     </div>
     <div className="negotiation-cards">
       {vendors.map(vendor => {
         const current = getPrice(vendor);
         const saved = Math.max(0, Number(vendor.listedPrice) - current);
         return <article key={vendor.id} className="negotiation-card">
-          <div className="neg-vendor"><VendorAvatar vendor={vendor} className="neg-avatar" /><div><small>{SERVICE_META[vendor.service]?.label || vendor.service}</small><strong>{vendor.name}</strong><span><BadgeCheck size={12} /> {vendor.statusLabel || 'Modeled floor respected'}</span></div></div>
+          <div className="neg-vendor"><VendorAvatar vendor={vendor} className="neg-avatar" /><div><small>{SERVICE_META[vendor.service]?.label || vendor.service}</small><strong>{vendor.name}</strong><span><BadgeCheck size={12} /> Indicative estimate · vendor confirmation required</span></div></div>
           <div className="offer-flow"><div><small>LISTED QUOTE</small><strong>{formatMoney(vendor.listedPrice)}</strong></div><div className="offer-arrow"><ArrowRight size={16} /></div><div><small>PACTAI OFFER</small><strong className="gold-figure">{formatMoney(current)}</strong></div></div>
-          <p className="negotiation-reason">{vendor.strategy || NEGOTIATION_REASONS[vendor.service]}</p>
+          <p className="negotiation-reason">{vendor.strategy || NEGOTIATION_REASONS[vendor.service]} This is a planning rationale, not a vendor-approved offer.</p>
           <div className="neg-card-foot"><span>NEGOTIATED SAVING</span><strong>−{formatMoney(saved)}</strong></div>
         </article>;
       })}
@@ -336,7 +336,7 @@ function NegotiationStage({ vendors, round, busy, target, setTarget, onTargetNeg
       <div><span>AGREED BUNDLE</span><strong>{formatMoney(finalPrice)}</strong></div>
       <div><span>NEGOTIATED SAVING</span><strong className="sage-figure">{formatMoney(saving)}</strong></div></div>
     <div className="stage-footer"><button className="text-button" onClick={onBack}><ArrowLeft size={15} /> Back to vendors</button>
-      <button type="button" className="button button-outline" onClick={onHarder} disabled={busy}><RefreshCw size={14} /> Push AI to bargain harder</button>
+      <button type="button" className="button button-outline" onClick={onHarder} disabled={busy}><RefreshCw size={14} /> Model a stronger target</button>
       <button type="button" className="button button-dark" onClick={onContinue} disabled={busy}>Inspect payment ledger <ArrowRight size={16} /></button>
     </div>
   </div>;
