@@ -17,22 +17,22 @@ const LABELS = ['The occasion', 'Dates & milestones', 'Vendor circle', 'Negotiat
 const ICONS = {
   venue: Building2, catering: Utensils, transport: Truck, decor: Flower2,
   photography: Camera, makeup: Brush, mehendi: Hand, entertainment: Music2,
-  cake: CakeSlice, planner: ClipboardList, fashion: Shirt
+  cake: CakeSlice, planner: ClipboardList, fashion: Shirt,
+  sound_lighting: Music2, security: ShieldCheck, rentals: Truck
 };
 const SERVICE_SHORT = {
   venue: 'venue', catering: 'catering', transport: 'transport', decor: 'decor',
   photography: 'photography', makeup: 'makeup', mehendi: 'Mehendi',
-  entertainment: 'DJ', cake: 'cake', planner: 'planner', fashion: 'fashion'
+  entertainment: 'DJ', cake: 'cake', planner: 'planner', fashion: 'fashion',
+  sound_lighting: 'sound & lighting', security: 'security', rentals: 'rentals'
 };
 
-const plusDays = (days) => {
-  const date = new Date();
-  date.setDate(date.getDate() + days);
-  return date.toISOString().slice(0, 10);
-};
 const initialDates = () => ({
-  depositDate: plusDays(0), auditDate: plusDays(31), setupDate: plusDays(44),
-  eventDate: plusDays(45), releaseDate: plusDays(46)
+  depositDate: '2026-12-13',
+  auditDate: '2026-12-20',
+  setupDate: '2026-12-26',
+  eventDate: '2026-12-27',
+  releaseDate: '2026-12-28'
 });
 const getPrice = (vendor) => Number(vendor.finalPrice ?? vendor.currentPrice ?? vendor.listedPrice ?? 0);
 const sum = (items, field) => items.reduce((total, item) => total + Number(item[field] || 0), 0);
@@ -58,8 +58,11 @@ const serviceForCategory = (category = '') => {
   const value = String(category).toLowerCase();
   if (value.includes('venue')) return 'venue';
   if (value.includes('cater') || value.includes('food')) return 'catering';
+  if (value.includes('security') || value.includes('safety')) return 'security';
+  if (value.includes('rental') || value.includes('furniture')) return 'rentals';
+  if (value.includes('sound') || value.includes('lighting') || value.includes('audio') || value.includes('av')) return 'sound_lighting';
   if (value.includes('photo') || value.includes('video') || value.includes('cinema')) return 'photography';
-  if (value.includes('decor') || value.includes('floral') || value.includes('lighting')) return 'decor';
+  if (value.includes('decor') || value.includes('floral')) return 'decor';
   if (value.includes('makeup') || value.includes('beauty') || value.includes('styling')) return 'makeup';
   if (value.includes('mehendi') || value.includes('henna')) return 'mehendi';
   if (value.includes('dj') || value.includes('entertain') || value.includes('music') || value.includes('band')) return 'entertainment';
@@ -77,8 +80,10 @@ function mapMarketplaceService(row) {
     id: row.id, serviceId: row.id, vendorId: row.vendor_id, service,
     serviceName: row.name, name: row.business_name || 'Event professional',
     city: row.city || '', tag: row.category || row.name,
-    image: row.cover_url || row.logo_url || '', rating: null, capacity: null,
-    blurb: row.description || '', listedPrice: Number(row.price || 0)
+    image: row.cover_url || row.logo_url || '', rating: Number(row.rating || 0) || null, capacity: null,
+    blurb: row.description || '', listedPrice: Number(row.price || 0),
+    currencyCode: row.currency_code || 'INR', priceMinor: Number(row.price_minor || 0),
+    availabilityDates: row.availability_dates || []
   });
 }
 
@@ -379,6 +384,23 @@ export default function App() {
     transitionTimers.current.forEach(timer => window.clearTimeout(timer));
   }, []);
 
+  // Supabase has no always-on Node startup process in this Vite static app.
+  // The first frontend boot invokes the server-side, idempotent seed function.
+  useEffect(() => {
+    if (!supabase) return undefined;
+    let active = true;
+    supabase.functions.invoke('demo-seed', { body: { action: 'seed' } })
+      .then(({ data, error }) => {
+        if (!active) return;
+        if (error) console.warn('PactAI demo seed did not run:', error.message);
+        else console.info('PactAI demo seed:', data?.seeded || data);
+      })
+      .catch(error => {
+        if (active) console.warn('PactAI demo seed did not run:', error);
+      });
+    return () => { active = false; };
+  }, []);
+
   useEffect(() => {
     if (!supabase) return undefined;
     let active = true;
@@ -389,9 +411,9 @@ export default function App() {
     return () => { active = false; subscription.unsubscribe(); };
   }, []);
   const [config, setConfig] = useState({
-    eventType: 'wedding', services: ['venue', 'catering', 'decor', 'photography', 'mehendi', 'entertainment'],
-    guestCount: '120', city: 'New Delhi',
-    vision: 'A candlelit garden celebration with thoughtful details.', budget: '18000'
+    eventType: 'corporate', services: ['venue', 'catering', 'decor', 'photography', 'sound_lighting', 'entertainment', 'security', 'rentals'],
+    guestCount: '300', city: 'New Delhi',
+    vision: 'Annual Tech Gala 2026 — a premium year-end technology celebration with keynote moments, dinner, live entertainment and an awards programme.', budget: '400000'
   });
   const [dates, setDates] = useState(initialDates);
   const [setupTime, setSetupTime] = useState('09:00');
@@ -404,7 +426,7 @@ export default function App() {
   const [requestBusy, setRequestBusy] = useState(false);
   const [selected, setSelected] = useState({});
   const [round, setRound] = useState(0);
-  const [target, setTarget] = useState('19000');
+  const [target, setTarget] = useState('330000');
   const [negotiationSummary, setNegotiationSummary] = useState('');
   const [negotiationError, setNegotiationError] = useState('');
   const [busy, setBusy] = useState(false);
@@ -471,7 +493,7 @@ export default function App() {
       ? (cityMatches.length ? 'Showing approved, published services from Supabase.' : 'No services matched that city exactly. Other approved cities are shown with their listed locations.')
       : 'No approved, published vendor services are available yet. Add a vendor service, publish the shop, and have an administrator approve the vendor in Supabase.');
     setRound(0);
-    setTarget('19000');
+    setTarget('330000');
     setNegotiationSummary('');
     setNegotiationError('');
     setCancelNotice('');
