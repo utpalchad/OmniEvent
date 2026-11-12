@@ -3,57 +3,27 @@
 A five-step React/Vite frontend for planning an event, selecting vendors, modeling floor-safe bundle negotiations, and reviewing a live payment-allocation ledger.
 
 ## Run locally
-
 Requires Node.js 20.19+.
-
 ```bash
 npm install
 npm run dev
 ```
 
-Open http://localhost:5173.
+## Vendor portal
+Routes: `/vendor`, `/vendor/register`, `/vendor/login`, `/vendor/forgot-password`, `/vendor/onboarding`, `/vendor/dashboard`, `/vendor/shop`, `/vendor/services`, `/vendor/enquiries`, `/vendor/bookings`, `/vendor/negotiations`, `/vendor/earnings`, and `/vendor/settings`.
 
-## Production build
+The portal uses Supabase Auth and Postgres only when the two browser-safe variables below are set. It deliberately does not fall back to an insecure localStorage account system.
 
-```bash
-npm run build
-npm run preview
-```
+1. Create a Supabase project and add the Render URL plus local URL to Authentication → URL Configuration.
+2. In Supabase SQL Editor run `supabase/vendor_portal.sql`.
+3. Create a private or public `vendor-media` Storage bucket as appropriate for the product; the SQL contains a vendor-owned object policy.
+4. Add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` to Render, then redeploy. Never expose `service_role` keys.
+5. Enable email confirmations and password recovery in Supabase Auth.
 
-## Five-step experience
+The tables and RLS policies make each vendor responsible only for their own profile and services. Published shops/services can be queried by customer marketplace code from the same database; existing customer catalogue demo data remains separate and clearly demo-only until that query is connected.
 
-1. **The occasion** — photo-led occasion cards, service selection, event brief and budget.
-2. **Dates & milestones** — date planning and a Bryntum-friendly milestone timeline shape.
-3. **Vendor circle** — curated local demo vendor catalogue with image fallbacks.
-4. **Negotiation** — enter a target bundle amount (for example `19000`) or discount (for example `20%`). The client-side offer model proportionally allocates discounts and never drops a vendor below its modeled floor price.
-5. **Payment ledger** — AG Grid rows for every selected vendor, 30% / 40% / 30% allocations, dynamic cancel-service controls, and a PayPal Sandbox-style checkout preview.
-
-## Demo and payment boundaries
-
-This repository is intentionally frontend-only. Vendor search, negotiation, cancellation, ledger recalculation and checkout-preview confirmation are simulated locally in the browser. The PayPal preview does **not** create a PayPal order, charge a card, capture funds, or issue an actual refund.
-
-A production PayPal Sandbox integration requires a configured PayPal client ID plus secure order creation/capture endpoints. Do not put a PayPal client secret in frontend code or a `VITE_*` variable. The milestone ledger is an orchestration record, **not** a regulated escrow account or custodied balance.
+## Existing customer flow
+The five-stage customer experience is unchanged. Its current negotiation, payment preview, and local vendor catalogue remain client-side demos.
 
 ## Deploy
-
-The `main` branch is connected to the Render Static Site service. Each commit triggers a new build using:
-
-```bash
-npm install --no-audit --no-fund && npm run build
-```
-
-Published directory: `dist`.
-
-## Stack
-
-React · Vite · Tailwind CSS v4 · Lucide · AG Grid Community · date-fns
-
-## Project structure
-
-- `src/App.jsx` — five-step wizard, local negotiation engine, live refund controls and PayPal preview modal
-- `src/components/CalendarPlanner.jsx` — event/setup/milestone calendar
-- `src/components/BudgetGrid.jsx` — AG Grid vendor ledger and payment allocations
-- `src/data/catalog.js` — occasion photo data, event types, service metadata and local vendor catalogue
-- `src/index.css` — warm cream / forest-green visual system and responsive layout
-- `src/main.jsx` — React entry point
-- `vite.config.js` — Vite, React and Tailwind configuration
+The `main` branch auto-deploys to the Render static service using `npm install --no-audit --no-fund && npm run build`; output is `dist`.
