@@ -46,6 +46,11 @@ create table if not exists public.earnings (
   created_at timestamptz not null default now()
 );
 
+drop policy if exists "customers read published shops" on public.vendor_profiles;
+drop policy if exists "customers read published services" on public.vendor_services;
+drop policy if exists "vendors manage own profile" on public.vendor_profiles;
+drop policy if exists "vendors manage own services" on public.vendor_services;
+
 create or replace view public.marketplace_services as
 select s.id, s.vendor_id, s.name, s.category, s.description, s.price, s.created_at,
        p.business_name, p.city, p.logo_url, p.cover_url
