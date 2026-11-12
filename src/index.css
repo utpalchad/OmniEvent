@@ -1645,3 +1645,189 @@ button:focus-visible, input:focus-visible {
   .service-chip { min-height: 62px; }
   .marketplace-groups::after { font-size: 7px; }
 }
+
+
+/* PactAI frontend upgrade: photo-led occasion cards, five-step mobile navigation,
+   floor-safe negotiation controls, live ledger and PayPal Sandbox preview modal. */
+:root { --pactai-cream: #F7F4EE; --pactai-forest: #1F3A2E; }
+html { scroll-padding-top: 90px; }
+.stage-body, .occasion-layout.stage-body {
+  scroll-margin-top: 90px;
+  padding-top: clamp(30px, 4vh, 48px);
+}
+.stage-heading, .section-label, .panel, .budget-grid-shell { scroll-margin-top: 100px; }
+
+/* The final request explicitly asks for no scroll-reveal or entrance animations. */
+.app-shell * { animation: none !important; }
+.stage-heading, .occasion-cards, .service-grid, .brief-grid, .occasion-actions,
+.market-section, .negotiation-card, .milestone-card, .ledger-summary > div {
+  opacity: 1 !important; transform: none !important; filter: none !important;
+}
+
+/* Step 01: full-width 110px celebration photography while retaining the
+   selected-state border and top-right checkmark. */
+.occasion-group .occasion-cards { align-items: stretch; }
+.occasion-group .occasion-card {
+  display: flex; flex-direction: column; align-items: stretch;
+  min-height: 188px; padding: 0 0 12px; overflow: hidden;
+  border-color: rgba(226,217,202,.94); border-radius: 13px;
+  text-align: left; gap: 0;
+}
+.occasion-group .occasion-card:hover,
+.occasion-group .occasion-card.selected {
+  border-color: #1F3A2E;
+  box-shadow: 0 0 0 1px rgba(31,58,46,.16), 0 12px 25px rgba(31,58,46,.09);
+}
+.occasion-photo {
+  display: block; width: 100%; height: 110px; flex: 0 0 110px;
+  object-fit: cover; background: #e9e3d8;
+}
+.occasion-group .occasion-card strong { display: block; padding: 11px 12px 3px; font-size: 11px; }
+.occasion-group .occasion-card small { display: block; padding: 0 12px; font-size: 9px; line-height: 1.4; }
+.occasion-group .occasion-card .card-check {
+  top: 8px; right: 8px; width: 25px; height: 25px; display: grid;
+  place-items: center; color: #fff; background: #1F3A2E; border: 2px solid #fff;
+  border-radius: 50%; box-shadow: 0 3px 10px rgba(0,0,0,.18);
+}
+.occasion-group .occasion-card.selected { border-color: #1F3A2E; }
+
+/* Image error handling: failed vendor photos become forest-green monogram chips. */
+.avatar-fallback {
+  display: inline-grid; place-items: center; flex: 0 0 auto;
+  color: #fbf8f1; background: #1F3A2E;
+  font: 700 12px 'Plus Jakarta Sans', sans-serif;
+  letter-spacing: .04em; text-transform: uppercase;
+}
+.vendor-image.avatar-fallback {
+  height: 170px; width: 100%; border-radius: 12px 12px 0 0;
+  font-size: 25px;
+}
+.neg-avatar.avatar-fallback {
+  width: 48px; height: 48px; border-radius: 50%;
+  border: 2px solid #f0e6d7; font-size: 12px;
+}
+
+/* Step 04: target controls are deliberately simple and keyboard-accessible. */
+.negotiation-target {
+  display: grid; grid-template-columns: minmax(200px,1fr) auto;
+  align-items: end; gap: 10px 16px; padding: 17px 18px;
+  border: 1px solid #e5ddcf; border-radius: 14px;
+  background: rgba(255,253,249,.94);
+}
+.negotiation-target label { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.negotiation-target input {
+  width: 100%; min-height: 43px; padding: 0 13px;
+  border: 1px solid #ded6c9; border-radius: 9px;
+  outline: none; color: #293d32; background: #fff;
+  font: 600 14px 'Plus Jakarta Sans', sans-serif;
+}
+.negotiation-target input:focus { border-color: #1F3A2E; box-shadow: 0 0 0 3px rgba(31,58,46,.09); }
+.negotiation-target p {
+  grid-column: 1 / 2; margin: -2px 0 0; color: #857f74;
+  font-size: 9px; line-height: 1.55;
+}
+.negotiation-target .button { grid-column: 2; grid-row: 1 / span 2; white-space: nowrap; }
+.neg-card-foot { gap: 10px; }
+.neg-card-foot span { font-size: 8px; letter-spacing: .8px; }
+
+/* Step 05: the AG Grid is horizontally scrollable on compact screens and keeps
+   every allocation visible without squeezing financial values. */
+.budget-grid-shell { flex: none; min-height: 300px; border-radius: 15px; }
+.ag-grid-wrap { min-height: 245px; height: 280px; overflow-x: auto; }
+.ag-grid-wrap .ag-root-wrapper { min-width: 900px; }
+.ledger-summary > div { min-width: 0; }
+.refund-guard {
+  padding: 18px; border-radius: 16px; border: 1px solid #e6ded1;
+  background: rgba(255,253,249,.94); box-shadow: 0 8px 24px rgba(57,49,34,.045);
+}
+.refund-guard > p { color: #898075; font-size: 10px; line-height: 1.65; margin: 12px 0; }
+.refund-guard .refund-examples { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.refund-guard .refund-examples button {
+  display: inline-flex; align-items: center; gap: 5px;
+  border: 1px solid #e3dbcf; border-radius: 999px;
+  background: #fff; color: #6f786f; padding: 8px 12px;
+  font: 700 9px 'Plus Jakarta Sans', sans-serif;
+  transition: border-color .2s, background .2s, color .2s;
+}
+.refund-guard .refund-examples button:hover {
+  border-color: #1F3A2E; background: #f0f3ed; color: #1F3A2E;
+}
+.refund-empty { color: #8a8177; font-size: 10px; }
+.refund-guard .refund-foot { margin-top: 14px; }
+
+/* Client-side PayPal Sandbox checkout preview. No order or payment is created. */
+.modal-backdrop {
+  position: fixed; inset: 0; z-index: 200;
+  display: flex; align-items: center; justify-content: center;
+  overflow-y: auto; padding: 22px;
+  background: rgba(19,31,24,.62); backdrop-filter: blur(9px);
+}
+.paypal-preview-modal {
+  position: relative; width: min(560px,100%); max-height: min(90vh,900px);
+  overflow-y: auto; padding: clamp(22px,4vw,34px);
+  border: 1px solid rgba(255,255,255,.65); border-radius: 22px;
+  background: #fbf8f1; box-shadow: 0 28px 90px rgba(0,0,0,.28);
+}
+.modal-close {
+  position: absolute; top: 17px; right: 17px; width: 34px; height: 34px;
+  display: grid; place-items: center; border: 1px solid #e7dfd3;
+  border-radius: 50%; background: #fff; color: #405447;
+}
+.sandbox-tag {
+  padding: 7px 10px; border-radius: 99px;
+  background: #eef2eb; color: #557665; font-size: 8px;
+  font-weight: 800; letter-spacing: .9px;
+}
+.paypal-preview-icon {
+  width: 52px; height: 52px; margin: 28px 0 15px;
+  display: grid; place-items: center; border-radius: 16px;
+  color: #1F3A2E; background: #e9eee7;
+}
+.paypal-preview-modal .serif-title { font-size: clamp(30px,5vw,42px); margin: 7px 0; }
+.preview-amount { margin: 14px 0; color: #1F3A2E; font: 500 clamp(38px,7vw,54px) var(--serif); }
+.preview-vendor-list {
+  margin: 20px 0 0; border-top: 1px solid #e7dfd3; border-bottom: 1px solid #e7dfd3;
+}
+.preview-vendor-list > div, .preview-total {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 10px 0; color: #777d73; font-size: 10px;
+}
+.preview-vendor-list strong, .preview-total strong { color: #293d32; }
+.preview-total { font-weight: 800; }
+.paypal-preview-modal .checkout-disclaimer { margin: 15px 0; }
+.modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; }
+
+/* Mobile stepper: keep all five numbered circles visible and only expose the
+   active caption, avoiding the old overlapping label problem. */
+@media (max-width: 640px) {
+  html { scroll-padding-top: 90px; }
+  .progress-nav {
+    position: sticky; top: 58px; z-index: 45;
+    min-height: 60px; display: flex; justify-content: flex-start;
+    gap: 9px; padding: 7px 12px; overflow-x: auto; overflow-y: hidden;
+    scrollbar-width: none;
+  }
+  .progress-nav::-webkit-scrollbar { display: none; }
+  .progress-step {
+    display: flex; flex: 0 0 auto; flex-direction: row;
+    min-width: 34px; gap: 7px; padding: 4px 3px;
+    white-space: nowrap; font-size: 8px;
+  }
+  .progress-step:not(.current) .progress-label { display: none; }
+  .progress-step.current .progress-label { display: inline; max-width: 108px; white-space: nowrap; }
+  .progress-index { width: 29px; height: 29px; flex: 0 0 29px; }
+  .stage-body, .occasion-layout.stage-body {
+    padding-top: 30px; scroll-margin-top: 90px;
+  }
+  .occasion-group .occasion-cards { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .occasion-group .occasion-card { min-height: 178px; }
+  .occasion-photo { height: 110px; flex-basis: 110px; }
+  .negotiation-target { grid-template-columns: 1fr; }
+  .negotiation-target p, .negotiation-target .button { grid-column: 1; grid-row: auto; }
+  .negotiation-target .button { width: 100%; }
+  .ag-grid-wrap { overflow-x: auto; }
+  .modal-backdrop { align-items: flex-start; padding: 12px; }
+  .paypal-preview-modal { margin: auto 0; border-radius: 17px; }
+  .modal-actions { flex-direction: column-reverse; }
+  .modal-actions .button { width: 100%; }
+}
