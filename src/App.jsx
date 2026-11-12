@@ -27,6 +27,19 @@ const SERVICE_SHORT = {
   sound_lighting: 'sound & lighting', security: 'security', rentals: 'rentals'
 };
 
+let demoSeedPromise = null;
+const ensureDemoSeeded = () => {
+  if (!supabase) return Promise.resolve(null);
+  if (!demoSeedPromise) {
+    demoSeedPromise = supabase.functions.invoke('demo-seed', { body: { action: 'seed' } })
+      .then(({ data, error }) => {
+        if (error) throw new Error(error.message || 'PactAI demo seed failed.');
+        return data;
+      });
+  }
+  return demoSeedPromise;
+};
+
 const initialDates = () => ({
   depositDate: '2026-12-13',
   auditDate: '2026-12-20',
@@ -384,20 +397,13 @@ export default function App() {
     transitionTimers.current.forEach(timer => window.clearTimeout(timer));
   }, []);
 
-  // Supabase has no always-on Node startup process in this Vite static app.
-  // The first frontend boot invokes the server-side, idempotent seed function.
+  // Supabase has no always-on Node process in this Vite Static Site.
+  // Seed once per browser runtime, and share the in-flight request with marketplace loading.
   useEffect(() => {
-    if (!supabase) return undefined;
     let active = true;
-    supabase.functions.invoke('demo-seed', { body: { action: 'seed' } })
-      .then(({ data, error }) => {
-        if (!active) return;
-        if (error) console.warn('PactAI demo seed did not run:', error.message);
-        else console.info('PactAI demo seed:', data?.seeded || data);
-      })
-      .catch(error => {
-        if (active) console.warn('PactAI demo seed did not run:', error);
-      });
+    ensureDemoSeeded()
+      .then(data => { if (active) console.info('PactAI demo seed:', data?.seeded || data); })
+      .catch(error => { if (active) console.warn('PactAI demo seed did not run:', error.message); });
     return () => { active = false; };
   }, []);
 
@@ -470,6 +476,10 @@ export default function App() {
       setMarketplaceLoading(false);
       go(2);
       return;
+    }
+    // Ensure the first-load seed finishes before the customer marketplace query.
+    try { await ensureDemoSeeded(); } catch (error) {
+      console.warn('Continuing with existing marketplace rows:', error.message);
     }
     const { data, error } = await supabase.from('marketplace_services').select('*').order('created_at', { ascending: false });
     if (error) {
