@@ -1,48 +1,89 @@
 import React, { useMemo } from 'react';
 import { AgGridReact } from 'ag-grid-react';
 import { AllCommunityModule, ModuleRegistry, themeQuartz } from 'ag-grid-community';
-import { CheckCircle2, Clock3, RotateCcw, ShieldCheck } from 'lucide-react';
+import { CheckCircle2, ShieldCheck } from 'lucide-react';
 import { formatMoney } from '../data/catalog.js';
 
 ModuleRegistry.registerModules([AllCommunityModule]);
 
 const escrowTheme = themeQuartz.withParams({
-  backgroundColor: '#ffffff', foregroundColor: '#292520', headerBackgroundColor: '#f6f1ea',
-  headerTextColor: '#71685e', borderColor: '#ebe5dc', rowHoverColor: '#fbf7f1',
-  selectedRowBackgroundColor: '#f5efe5', fontFamily: 'Plus Jakarta Sans, sans-serif',
-  fontSize: 11, headerFontSize: 9, headerFontWeight: 700, cellHorizontalPadding: 12,
+  backgroundColor: '#fffdf8',
+  foregroundColor: '#29382f',
+  headerBackgroundColor: '#f3f0e8',
+  headerTextColor: '#6f786f',
+  borderColor: '#e8e1d5',
+  rowHoverColor: '#f7f4ed',
+  selectedRowBackgroundColor: '#eef2eb',
+  fontFamily: 'Plus Jakarta Sans, sans-serif',
+  fontSize: 11,
+  headerFontSize: 9,
+  headerFontWeight: 700,
+  cellHorizontalPadding: 12,
   wrapperBorderRadius: 12
 });
 
-function StatusPill({ value }) {
-  const text = String(value || 'Awaiting funding');
-  const refunded = /refund|removed/i.test(text);
-  const funded = /captured|escrow|released|demo funding/i.test(text);
-  const Icon = refunded ? RotateCcw : funded ? ShieldCheck : Clock3;
-  return <span className={`grid-status ${refunded ? 'refunded' : funded ? 'funded' : 'pending'}`}><Icon size={11} />{text}</span>;
-}
+const initialAmount = (amount) => Math.round(Number(amount || 0) * .30);
+const midwayAmount = (amount) => Math.round(Number(amount || 0) * .40);
 
 export default function BudgetGrid({ vendors = [], dates = {}, escrowStatus = 'Awaiting funding' }) {
-  const rows = useMemo(() => vendors.map(vendor => ({
-    id: vendor.id, service: vendor.serviceLabel || vendor.service, vendor: vendor.name,
-    listed: Number(vendor.listedPrice || 0), negotiated: Number(vendor.finalPrice ?? vendor.currentPrice ?? vendor.listedPrice ?? 0),
-    strategy: vendor.strategy || 'Bundle leverage pending', releaseDate: dates.releaseDate || 'To be confirmed',
-    status: vendor.refundStatus || escrowStatus
-  })), [vendors, dates.releaseDate, escrowStatus]);
+  // Each vendor row owns its own allocation. The final 30% absorbs rounding
+  // differences so that all three checkpoints always sum back to the offer.
+  const rows = useMemo(() => vendors.map(vendor => {
+    const negotiated = Number(vendor.finalPrice ?? vendor.currentPrice ?? vendor.listedPrice ?? 0);
+    const initial = initialAmount(negotiated);
+    const midway = midwayAmount(negotiated);
+    return {
+      id: vendor.id,
+      category: vendor.serviceLabel || vendor.service,
+      vendor: vendor.name,
+      listed: Number(vendor.listedPrice || 0),
+      negotiated,
+      initial,
+      midway,
+      final: negotiated - initial - midway
+    };
+  }), [vendors]);
+
+  const moneyColumn = (field, headerName, flex = 1) => ({
+    field, headerName, minWidth: 112, flex,
+    valueFormatter: ({ value }) => formatMoney(value),
+    cellClass: 'amount-cell'
+  });
 
   const columns = useMemo(() => [
-    { field: 'service', headerName: 'SERVICE', minWidth: 105, flex: 0.8 },
-    { field: 'vendor', headerName: 'VENDOR PARTNER', minWidth: 145, flex: 1.1 },
-    { field: 'listed', headerName: 'LISTED QUOTE', width: 112, valueFormatter: ({ value }) => formatMoney(value), cellClass: 'amount-cell' },
-    { field: 'negotiated', headerName: 'PACTAI PRICE', width: 112, valueFormatter: ({ value }) => formatMoney(value), cellClass: 'amount-cell negotiated-cell' },
-    { field: 'strategy', headerName: 'NEGOTIATION METHOD', minWidth: 210, flex: 1.3, wrapText: true, autoHeight: true },
-    { field: 'releaseDate', headerName: 'RELEASE DATE', width: 110 },
-    { field: 'status', headerName: 'LEDGER STATUS', minWidth: 150, cellRenderer: params => <StatusPill value={params.value} /> }
+    { field: 'category', headerName: 'CATEGORY', minWidth: 145, flex: 1.2 },
+    { field: 'vendor', headerName: 'VENDOR', minWidth: 155, flex: 1.35 },
+    moneyColumn('listed', 'LISTED QUOTE', 1),
+    { ...moneyColumn('negotiated', 'NEGOTIATED OFFER', 1), cellClass: 'amount-cell negotiated-cell' },
+    moneyColumn('initial', '30% INITIAL', .9),
+    moneyColumn('midway', '40% MIDWAY', .9),
+    moneyColumn('final', '30% FINAL', .9)
   ], []);
 
-  return <div className="budget-grid-shell">
-    <div className="budget-grid-topline"><div><span className="eyebrow">TRANSACTION LEDGER</span><h3 className="serif-heading">Every line, accounted for.</h3></div><div className="ledger-seal"><CheckCircle2 size={14} /> <span>Milestone mapped</span></div></div>
-    <div className="ag-grid-wrap"><AgGridReact theme={escrowTheme} rowData={rows} columnDefs={columns} defaultColDef={{ sortable: true, resizable: true, suppressMovable: true }} getRowId={({ data }) => data.id} domLayout="normal" rowHeight={56} headerHeight={40} animateRows suppressCellFocus overlayNoRowsTemplate="<span class='ag-overlay-no-rows-center'>Select a vendor to create your ledger.</span>" /></div>
-    <div className="ledger-footnote"><ShieldCheck size={13} /><span>Vendor-level allocation · one checkout record · milestone release plan</span><span className="ledger-currency">USD · PAYPAL-READY</span></div>
-  </div>;
+  return <section className="budget-grid-shell">
+    <div className="budget-grid-topline">
+      <div><span className="eyebrow">TRANSACTION LEDGER</span><h3 className="serif-heading">Every line, accounted for.</h3></div>
+      <div className="ledger-seal"><CheckCircle2 size={14} /><span>Live allocation</span></div>
+    </div>
+    <div className="ag-grid-wrap">
+      <AgGridReact
+        theme={escrowTheme}
+        rowData={rows}
+        columnDefs={columns}
+        defaultColDef={{ sortable: true, resizable: true, suppressMovable: true, wrapHeaderText: true, autoHeaderHeight: true }}
+        getRowId={({ data }) => data.id}
+        domLayout="normal"
+        rowHeight={54}
+        headerHeight={48}
+        animateRows={false}
+        suppressCellFocus
+        overlayNoRowsTemplate="<span class='ag-overlay-no-rows-center'>Select a vendor to create your ledger.</span>"
+      />
+    </div>
+    <div className="ledger-footnote">
+      <ShieldCheck size={13} />
+      <span>Vendor-level allocation · 30% initial · 40% midway · 30% final</span>
+      <span className="ledger-currency">USD · CLIENT-SIDE DEMO</span>
+    </div>
+  </section>;
 }
