@@ -24,23 +24,6 @@ const SERVICE_SHORT = {
   photography: 'photography', makeup: 'makeup', mehendi: 'Mehendi',
   entertainment: 'DJ', cake: 'cake', planner: 'planner', fashion: 'fashion'
 };
-const FLOOR_RATES = {
-  venue: .78, catering: .80, decor: .76, photography: .80, makeup: .79,
-  mehendi: .78, entertainment: .74, transport: .80, cake: .78, planner: .79, fashion: .82
-};
-const NEGOTIATION_REASONS = {
-  venue: 'Off-peak Sunday date unlocked a 17% estate discount; flexible access hours reduced the venue package rate.',
-  catering: 'Multi-event package rate applied; menu planning and service staffing were consolidated into one booking.',
-  decor: 'Combined stage, floral and mandap scope removed duplicate installation and strike-down charges.',
-  photography: 'Multi-day coverage package reduced crew deployment and post-production overhead.',
-  makeup: 'Group booking rate applied across the wedding party, with one coordinated on-location setup.',
-  mehendi: 'Bridal-plus-guest booking unlocked a station package rate and shared artist travel.',
-  entertainment: '6-service bundle waived equipment & travel fees; DJ, sound and lighting were priced as one package.',
-  transport: 'Round-trip shuttle blocks were combined, reducing dead mileage and dispatch overhead.',
-  cake: 'Tiered cake and dessert-table scope was bundled under one production and delivery window.',
-  planner: 'Multi-function coordination rate applied after consolidating the run-of-show and vendor check-ins.',
-  fashion: 'Wedding-party fittings were grouped into one appointment and styling package.'
-};
 
 const plusDays = (days) => {
   const date = new Date();
@@ -57,12 +40,16 @@ const initials = (name = '') => String(name).trim().split(/\s+/).filter(Boolean)
 
 function modelVendor(vendor) {
   const listedPrice = Number(vendor.listedPrice || 0);
-  const floorPrice = Math.ceil(listedPrice * (FLOOR_RATES[vendor.service] || .79));
   return {
-    ...vendor, listedPrice, floorPrice, finalPrice: listedPrice, currentPrice: listedPrice,
+    ...vendor,
+    listedPrice,
+    floorPrice: listedPrice,
+    finalPrice: listedPrice,
+    currentPrice: listedPrice,
     serviceLabel: SERVICE_META[vendor.service]?.label || vendor.service,
-    strategy: NEGOTIATION_REASONS[vendor.service] || 'A coordinated package rate was applied after reviewing the selected event scope.',
-    statusLabel: 'Modeled floor respected'
+    strategy: 'Awaiting an AI-generated customer proposal.',
+    negotiationMessage: '',
+    statusLabel: 'Vendor review required'
   };
 }
 
@@ -105,32 +92,6 @@ function parseTarget(value, listedTotal) {
   }
   const amount = Number(raw.replace(/[$,\s]/g, ''));
   return Number.isFinite(amount) && amount > 0 ? amount : null;
-}
-
-// Distributes a requested bundle price proportionally across vendor discount
-// headroom. No result can move below that vendor's modeled floor price.
-function buildOffers(vendors, targetValue, round, harder = false) {
-  const listedTotal = sum(vendors, 'listedPrice');
-  const floorTotal = sum(vendors, 'floorPrice');
-  const currentTotal = vendors.reduce((total, vendor) => total + getPrice(vendor), 0);
-  let desired = parseTarget(targetValue, listedTotal);
-  if (desired === null) desired = currentTotal * (1 - Math.min(.12, .025 * Math.max(1, round)));
-  if (harder) desired *= .985;
-  desired = Math.min(listedTotal, Math.max(floorTotal, desired));
-  const discountRoom = Math.max(0, listedTotal - floorTotal);
-  const pressure = discountRoom ? Math.max(0, Math.min(1, (listedTotal - desired) / discountRoom)) : 1;
-
-  return vendors.map(vendor => {
-    const floor = Number(vendor.floorPrice || Math.ceil(vendor.listedPrice * .79));
-    const headroom = Math.max(0, Number(vendor.listedPrice) - floor);
-    const finalPrice = Math.max(floor, Math.min(Number(vendor.listedPrice), Math.round(Number(vendor.listedPrice) - headroom * pressure)));
-    return {
-      ...vendor, currentPrice: finalPrice, finalPrice,
-      savings: Number(vendor.listedPrice) - finalPrice,
-      strategy: NEGOTIATION_REASONS[vendor.service] || vendor.strategy,
-      statusLabel: 'Modeled floor respected'
-    };
-  });
 }
 
 function Brand() {
@@ -304,40 +265,44 @@ function Marketplace({ vendors, selected, onSelect, config, onBack, onContinue, 
   </div>;
 }
 
-function NegotiationStage({ vendors, round, busy, target, setTarget, onTargetNegotiate, onHarder, onBack, onContinue }) {
+function NegotiationStage({ vendors, round, busy, target, setTarget, onTargetNegotiate, onHarder, onBack, onContinue, aiSummary, aiError, customer }) {
   const listPrice = sum(vendors, 'listedPrice');
   const finalPrice = vendors.reduce((total, vendor) => total + getPrice(vendor), 0);
-  const saving = listPrice - finalPrice;
+  const saving = Math.max(0, listPrice - finalPrice);
+  const proposalReady = round > 0;
   return <div className="stage-body">
-    <Heading eyebrow="PACTAI BUNDLE PLANNING · INDICATIVE ESTIMATES" title="Shape your proposal."
-      detail="Adjust a planning target to prepare an offer for your selected vendors. These figures are estimates only; each vendor must confirm availability and their final quote."
-      aside={<div className="round-stamp"><span>ROUND</span><strong>{String(round).padStart(2, '0')}</strong><small>{busy ? 'WORKING' : 'READY'}</small></div>} />
-    <div className="negotiation-toolbar"><div className="agent-status"><span className="sage-dot" />{busy ? 'RECALCULATING YOUR ESTIMATE' : 'PLANNING ESTIMATE READY'}</div><span className="mono">BUNDLE / INDICATIVE MODE</span></div>
+    <Heading eyebrow="AI NEGOTIATION COPILOT · CUSTOMER PROPOSAL" title="Shape your opening offer."
+      detail="PactAI uses AI to draft a respectful opening proposal for each selected vendor. Every suggested amount stays between that vendor's listed price and their private minimum acceptable price. Vendors must still review and respond."
+      aside={<div className="round-stamp"><span>AI DRAFT</span><strong>{String(round).padStart(2, '0')}</strong><small>{busy ? 'THINKING' : proposalReady ? 'READY' : 'NOT STARTED'}</small></div>} />
+    <div className="negotiation-toolbar"><div className="agent-status"><span className="sage-dot" />{busy ? 'PACTAI IS PREPARING YOUR PROPOSAL' : proposalReady ? 'AI PROPOSAL READY · AWAITING VENDOR REVIEW' : 'READY TO GENERATE AN AI PROPOSAL'}</div><span className="mono">AI-ASSISTED · NOT AN ACCEPTED QUOTE</span></div>
+    {!customer && <div className="vp-message" role="status">Sign in with a customer account to use the AI negotiator. <a href="/customer/login">Customer sign in</a></div>}
+    {aiError && <div className="vp-message" role="alert">{aiError}</div>}
+    {aiSummary && <div className="panel negotiation-ai-summary"><span className="eyebrow">PACTAI'S NEGOTIATION STRATEGY</span><p>{aiSummary}</p></div>}
     <div className="negotiation-target panel">
       <label htmlFor="target-budget"><span className="eyebrow">YOUR TARGET BUNDLE BUDGET ($) OR DESIRED DISCOUNT (%)</span>
-        <input id="target-budget" value={target} onChange={e => setTarget(e.target.value)} placeholder="e.g. 19000 or 20%" />
+        <input id="target-budget" value={target} onChange={e => setTarget(e.target.value)} placeholder="e.g. 19000 or 15%" />
       </label>
-      <p>Enter a target bundle amount or desired discount. The resulting figures are planning estimates, not vendor-approved quotes.</p>
-      <button type="button" className="button button-dark" disabled={busy || !vendors.length} onClick={onTargetNegotiate}><Sparkles size={15} /> Recalculate estimate</button>
+      <p>AI considers the event brief and the minimum price each vendor has authorised. A target below those minimums cannot be promised.</p>
+      <button type="button" className="button button-dark" disabled={busy || !vendors.length || !customer} onClick={onTargetNegotiate}><Sparkles size={15} /> {busy ? 'Preparing proposal…' : proposalReady ? 'Regenerate AI proposal' : 'Generate AI proposal'}</button>
+      {proposalReady && <button type="button" className="button button-outline" disabled={busy || !customer} onClick={onHarder}><RefreshCw size={14} /> Ask for a firmer proposal</button>}
     </div>
     <div className="negotiation-cards">
       {vendors.map(vendor => {
         const current = getPrice(vendor);
         const saved = Math.max(0, Number(vendor.listedPrice) - current);
         return <article key={vendor.id} className="negotiation-card">
-          <div className="neg-vendor"><VendorAvatar vendor={vendor} className="neg-avatar" /><div><small>{SERVICE_META[vendor.service]?.label || vendor.service}</small><strong>{vendor.name}</strong><span><BadgeCheck size={12} /> Indicative estimate · vendor confirmation required</span></div></div>
-          <div className="offer-flow"><div><small>LISTED QUOTE</small><strong>{formatMoney(vendor.listedPrice)}</strong></div><div className="offer-arrow"><ArrowRight size={16} /></div><div><small>PACTAI OFFER</small><strong className="gold-figure">{formatMoney(current)}</strong></div></div>
-          <p className="negotiation-reason">{vendor.strategy || NEGOTIATION_REASONS[vendor.service]} This is a planning rationale, not a vendor-approved offer.</p>
-          <div className="neg-card-foot"><span>NEGOTIATED SAVING</span><strong>−{formatMoney(saved)}</strong></div>
+          <div className="neg-vendor"><VendorAvatar vendor={vendor} className="neg-avatar" /><div><small>{SERVICE_META[vendor.service]?.label || vendor.service}</small><strong>{vendor.name}</strong><span><BadgeCheck size={12} /> {proposalReady ? 'AI-drafted proposal · vendor confirmation required' : 'Listed price · awaiting AI proposal'}</span></div></div>
+          <div className="offer-flow"><div><small>LISTED PRICE</small><strong>{formatMoney(vendor.listedPrice)}</strong></div><div className="offer-arrow"><ArrowRight size={16} /></div><div><small>{proposalReady ? 'AI PROPOSED PRICE' : 'NOT YET PROPOSED'}</small><strong className="gold-figure">{proposalReady ? formatMoney(current) : '—'}</strong></div></div>
+          {proposalReady && <><p className="negotiation-reason">{vendor.strategy}</p><div className="negotiation-reason"><strong>Suggested message to vendor:</strong><p>{vendor.negotiationMessage}</p></div><div className="neg-card-foot"><span>POTENTIAL DIFFERENCE · NOT CONFIRMED SAVINGS</span><strong>−{formatMoney(saved)}</strong></div></>}
         </article>;
       })}
     </div>
-    <div className="savings-strip"><div><span>COMBINED LISTED QUOTE</span><strong>{formatMoney(listPrice)}</strong></div>
-      <div><span>AGREED BUNDLE</span><strong>{formatMoney(finalPrice)}</strong></div>
-      <div><span>NEGOTIATED SAVING</span><strong className="sage-figure">{formatMoney(saving)}</strong></div></div>
+    <div className="savings-strip"><div><span>COMBINED LISTED PRICE</span><strong>{formatMoney(listPrice)}</strong></div>
+      <div><span>{proposalReady ? 'AI PROPOSED BUNDLE' : 'BUNDLE PRICE'}</span><strong>{formatMoney(proposalReady ? finalPrice : listPrice)}</strong></div>
+      <div><span>POTENTIAL DIFFERENCE</span><strong className="sage-figure">{formatMoney(proposalReady ? saving : 0)}</strong></div></div>
     <div className="stage-footer"><button className="text-button" onClick={onBack}><ArrowLeft size={15} /> Back to vendors</button>
-      <button type="button" className="button button-outline" onClick={onHarder} disabled={busy}><RefreshCw size={14} /> Model a stronger target</button>
-      <button type="button" className="button button-dark" onClick={onContinue} disabled={busy}>Inspect payment ledger <ArrowRight size={16} /></button>
+      <span className="footer-note">No vendor has accepted these proposals. Final prices require vendor confirmation.</span>
+      <button type="button" className="button button-dark" onClick={onContinue} disabled={busy || !proposalReady}>Review proposals <ArrowRight size={16} /></button>
     </div>
   </div>;
 }
@@ -372,8 +337,8 @@ function LedgerStage({ vendors, dates, status, onBack, onCancelVendor, cancelNot
       aside={<span className="quiet-badge"><ShieldCheck size={13} /> {status}</span>} />
     <div className="ledger-summary">
       <div><small>LISTED TOTAL</small><strong>{formatMoney(listed)}</strong></div>
-      <div><small>NEGOTIATED TOTAL</small><strong>{formatMoney(agreed)}</strong></div>
-      <div><small>YOU KEEP</small><strong className="sage-figure">{formatMoney(listed - agreed)}</strong></div>
+      <div><small>PROPOSED TOTAL</small><strong>{formatMoney(agreed)}</strong></div>
+      <div><small>POTENTIAL DIFFERENCE</small><strong className="sage-figure">{formatMoney(listed - agreed)}</strong></div>
       <div><small>ACTIVE VENDORS</small><strong>{vendors.length}</strong></div>
     </div>
     <div className="milestone-grid">
@@ -385,7 +350,7 @@ function LedgerStage({ vendors, dates, status, onBack, onCancelVendor, cancelNot
     <BudgetGrid vendors={vendors} dates={dates} escrowStatus={status} />
     <section className="refund-guard panel">
       <div className="refund-heading"><span className="refund-icon"><HeartHandshake size={18} /></span><div><span className="eyebrow">AUTONOMOUS REFUND GUARD</span><h2 className="serif-title">Plans can change.</h2></div></div>
-      <p>Remove a selected service from the bundle. The transaction ledger, negotiated total and milestone allocations update immediately in this demo.</p>
+      <p>Remove a selected service from the proposal. The planning ledger and milestone estimates update; no payment is collected at this stage.</p>
       <div className="refund-examples">
         {vendors.map(vendor => <button type="button" key={vendor.id} onClick={() => onCancelVendor(vendor)}>
           <X size={12} /> Cancel {SERVICE_SHORT[vendor.service] || vendor.service}
@@ -440,6 +405,8 @@ export default function App() {
   const [selected, setSelected] = useState({});
   const [round, setRound] = useState(0);
   const [target, setTarget] = useState('19000');
+  const [negotiationSummary, setNegotiationSummary] = useState('');
+  const [negotiationError, setNegotiationError] = useState('');
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('Awaiting funding');
   const [cancelNotice, setCancelNotice] = useState('');
@@ -505,6 +472,8 @@ export default function App() {
       : 'No approved, published vendor services are available yet. Add a vendor service, publish the shop, and have an administrator approve the vendor in Supabase.');
     setRound(0);
     setTarget('19000');
+    setNegotiationSummary('');
+    setNegotiationError('');
     setCancelNotice('');
     setRequestReference('');
     setRequestMessage('');
@@ -514,20 +483,66 @@ export default function App() {
 
   const updateSelection = (service, id) => setSelected(current => ({ ...current, [service]: id }));
 
-  const runNegotiation = (harder = false) => {
+  const runNegotiation = async (harder = false) => {
     if (!chosen.length) return;
+    if (!customer) {
+      setNegotiationError('Sign in with a customer account before generating an AI proposal.');
+      return;
+    }
     setBusy(true);
+    setNegotiationError('');
+    setNegotiationSummary('');
     const nextRound = round + 1;
-    const updates = buildOffers(chosen, target, nextRound, harder);
-    setVendors(current => current.map(vendor => updates.find(update => update.id === vendor.id) || vendor));
-    setRound(nextRound);
-    setStatus('Locally modeled offers');
-    setBusy(false);
+    try {
+      const { data, error } = await supabase.functions.invoke('negotiate-bundle', {
+        body: {
+          service_ids: chosen.map(vendor => vendor.serviceId || vendor.id),
+          target: String(target || '').trim(),
+          revision: nextRound,
+          stronger: harder,
+          event: {
+            event_type: config.eventType,
+            city: config.city,
+            guest_count: Number(config.guestCount),
+            event_date: dates.eventDate,
+            vision: config.vision
+          }
+        }
+      });
+      if (error) throw new Error(data?.error || error.message || 'The AI negotiator could not be reached.');
+      if (!data || !Array.isArray(data.recommendations)) throw new Error('The AI negotiator returned an invalid proposal. Please try again.');
+      const recommendations = new Map(data.recommendations.map(item => [item.service_id, item]));
+      const expectedIds = chosen.map(vendor => vendor.serviceId || vendor.id);
+      if (expectedIds.some(id => !recommendations.has(id))) throw new Error('The AI proposal did not include every selected service. Please regenerate it.');
+      setVendors(current => current.map(vendor => {
+        const item = recommendations.get(vendor.serviceId || vendor.id);
+        if (!item) return vendor;
+        const proposedPrice = Number(item.proposed_price);
+        return {
+          ...vendor,
+          currentPrice: proposedPrice,
+          finalPrice: proposedPrice,
+          savings: Math.max(0, Number(vendor.listedPrice) - proposedPrice),
+          strategy: item.rationale,
+          negotiationMessage: item.message,
+          statusLabel: 'AI proposal · awaiting vendor review'
+        };
+      }));
+      setRound(nextRound);
+      setNegotiationSummary(data.summary || 'AI-generated opening proposals are ready for your review.');
+      setStatus('AI proposal · awaiting vendor review');
+    } catch (error) {
+      setNegotiationError(error.message || 'Unable to generate a proposal. Please try again.');
+    } finally {
+      setBusy(false);
+    }
   };
 
   const startNegotiation = () => {
-    runNegotiation(false);
+    setNegotiationSummary('');
+    setNegotiationError('');
     go(3);
+    void runNegotiation(false);
   };
 
   const sendEnquiries = async () => {
@@ -544,7 +559,8 @@ export default function App() {
       const selections = chosen.map(vendor => ({
         service_id: vendor.serviceId || vendor.id,
         vendor_id: vendor.vendorId,
-        message: 'PactAI event enquiry: ' + config.eventType + ' in ' + config.city + '. Guests: ' + config.guestCount + '. Event date: ' + dates.eventDate + '. Budget: ' + config.budget + '. Brief: ' + config.vision + '. Proposed planning estimate: ' + formatMoney(getPrice(vendor)) + '. Please confirm availability and your final quote.'
+        proposed_price: getPrice(vendor),
+        message: 'PactAI event enquiry: ' + config.eventType + ' in ' + config.city + '. Guests: ' + config.guestCount + '. Event date: ' + dates.eventDate + '. Budget: ' + config.budget + '. Brief: ' + config.vision + '. AI-assisted customer opening proposal: ' + formatMoney(getPrice(vendor)) + '. ' + (vendor.negotiationMessage || 'Please review this proposal and share your quote.') + ' This is a proposal only and is not a vendor-approved price.'
       }));
       const { data, error } = await supabase.rpc('submit_customer_event', {
         p_event: {
@@ -587,6 +603,8 @@ export default function App() {
     setSelected({});
     setRound(0);
     setTarget('19000');
+    setNegotiationSummary('');
+    setNegotiationError('');
     setStatus('Awaiting funding');
     setCancelNotice('');
     setPaymentReference('');
@@ -616,7 +634,7 @@ export default function App() {
           {step === 0 && <OccasionStage config={config} setConfig={setConfig} next={() => { setDates(initialDates()); go(1); }} />}
           {step === 1 && <div className="stage-body"><Heading eyebrow="EVENT CALENDAR · SETUP & PAYMENT MILESTONES" title="Choose the moments." detail="Set the event day, vendor setup window and three clear payment checkpoints." /><CalendarPlanner dates={dates} onChange={setDates} setupTime={setupTime} onSetupTimeChange={setSetupTime} /><Footer back={() => go(0)} next={loadVendors} nextText="Browse curated vendors" note="Availability indicators are illustrative demo signals." /></div>}
           {step === 2 && <Marketplace vendors={vendors} selected={selected} onSelect={updateSelection} config={config} onBack={() => go(1)} onContinue={startNegotiation} marketplaceMessage={marketplaceMessage} marketplaceLoading={marketplaceLoading} />}
-          {step === 3 && <NegotiationStage vendors={chosen} round={round} busy={busy} target={target} setTarget={setTarget} onTargetNegotiate={() => runNegotiation(false)} onHarder={() => runNegotiation(true)} onBack={() => go(2)} onContinue={() => go(4)} />}
+          {step === 3 && <NegotiationStage vendors={chosen} round={round} busy={busy} target={target} setTarget={setTarget} onTargetNegotiate={() => runNegotiation(false)} onHarder={() => runNegotiation(true)} onBack={() => go(2)} onContinue={() => go(4)} aiSummary={negotiationSummary} aiError={negotiationError} customer={customer} />}
           {step === 4 && <LedgerStage vendors={chosen} dates={dates} status={status} onBack={() => go(3)} onCancelVendor={cancelVendor} cancelNotice={cancelNotice} onSendEnquiries={sendEnquiries} requestReference={requestReference} requestMessage={requestMessage} requestBusy={requestBusy} customer={customer} />}
         </motion.section>
       </AnimatePresence>
