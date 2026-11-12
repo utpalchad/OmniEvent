@@ -162,12 +162,9 @@ function SelectionPhoto({ src, alt, className = '' }) {
   const [imageFailed, setImageFailed] = useState(false);
   const fallback = 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1000&q=85';
   return <div className={'selection-photo-frame ' + className}>
-    <img
-      src={imageFailed ? fallback : (src || fallback)}
-      alt={alt}
-      loading="lazy"
-      onError={() => { if (!imageFailed) setImageFailed(true); }}
-    />
+    {imageFailed
+      ? <div className="selection-photo-fallback"><Sparkles size={18} /><span>{alt}</span></div>
+      : <img src={src || fallback} alt={alt} loading="lazy" onError={() => setImageFailed(true)} />}
     <span className="selection-photo-caption">{alt}</span>
   </div>;
 }
