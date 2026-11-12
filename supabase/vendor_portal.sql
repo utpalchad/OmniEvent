@@ -2,6 +2,22 @@
 -- Run in Supabase SQL Editor or with Supabase CLI migrations.
 create extension if not exists pgcrypto;
 
+create table if not exists public.vendor_profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  full_name text not null, business_name text not null, phone text not null,
+  category text not null, city text not null, description text default '',
+  address text default '', service_locations text default '', years_experience text default '',
+  instagram_url text default '', website_url text default '', is_published boolean default false,
+  created_at timestamptz default now(), updated_at timestamptz default now()
+);
+create table if not exists public.vendor_services (
+  id uuid primary key default gen_random_uuid(),
+  vendor_id uuid not null references public.vendor_profiles(id) on delete cascade,
+  name text not null, category text not null, description text default '',
+  price numeric not null check(price >= 0), is_published boolean default false,
+  created_at timestamptz default now(), updated_at timestamptz default now()
+);
+
 do $$ begin
   create type public.app_role as enum ('customer','vendor','admin');
 exception when duplicate_object then null; end $$;
