@@ -8,10 +8,11 @@ import {
 } from 'lucide-react';
 import CalendarPlanner from './components/CalendarPlanner.jsx';
 import BudgetGrid from './components/BudgetGrid.jsx';
-import { EVENT_TYPES, SERVICE_META, formatMoney, getLocalVendors } from './data/catalog.js';
+import { EVENT_TYPES, SERVICE_META, formatMoney } from './data/catalog.js';
+import { supabase } from './lib/supabase.js';
 
-// PactAI is intentionally frontend-only in this build. Negotiation, cancellation,
-// payment preview and ledger allocation are deterministic client-side simulations.
+// Customer events and vendor enquiries are persisted in Supabase. Negotiation figures
+// remain planning estimates until each vendor confirms their quote; payments are not processed here.
 const LABELS = ['The occasion', 'Dates & milestones', 'Vendor circle', 'Negotiation', 'Payment ledger'];
 const ICONS = {
   venue: Building2, catering: Utensils, transport: Truck, decor: Flower2,
@@ -63,6 +64,35 @@ function modelVendor(vendor) {
     strategy: NEGOTIATION_REASONS[vendor.service] || 'A coordinated package rate was applied after reviewing the selected event scope.',
     statusLabel: 'Modeled floor respected'
   };
+}
+
+
+const serviceForCategory = (category = '') => {
+  const value = String(category).toLowerCase();
+  if (value.includes('venue')) return 'venue';
+  if (value.includes('cater') || value.includes('food')) return 'catering';
+  if (value.includes('photo') || value.includes('video') || value.includes('cinema')) return 'photography';
+  if (value.includes('decor') || value.includes('floral') || value.includes('lighting')) return 'decor';
+  if (value.includes('makeup') || value.includes('beauty') || value.includes('styling')) return 'makeup';
+  if (value.includes('mehendi') || value.includes('henna')) return 'mehendi';
+  if (value.includes('dj') || value.includes('entertain') || value.includes('music') || value.includes('band')) return 'entertainment';
+  if (value.includes('transport') || value.includes('car') || value.includes('shuttle')) return 'transport';
+  if (value.includes('cake') || value.includes('dessert')) return 'cake';
+  if (value.includes('planner') || value.includes('coordination')) return 'planner';
+  if (value.includes('fashion') || value.includes('bridal') || value.includes('invitation')) return 'fashion';
+  return null;
+};
+
+function mapMarketplaceService(row) {
+  const service = serviceForCategory(row.category);
+  if (!service) return null;
+  return modelVendor({
+    id: row.id, serviceId: row.id, vendorId: row.vendor_id, service,
+    serviceName: row.name, name: row.business_name || 'Event professional',
+    city: row.city || '', tag: row.category || row.name,
+    image: row.cover_url || row.logo_url || '', rating: null, capacity: null,
+    blurb: row.description || '', listedPrice: Number(row.price || 0)
+  });
 }
 
 function parseTarget(value, listedTotal) {
@@ -239,12 +269,14 @@ function OccasionStage({ config, setConfig, next }) {
   </div>;
 }
 
-function Marketplace({ vendors, selected, onSelect, config, onBack, onContinue }) {
+function Marketplace({ vendors, selected, onSelect, config, onBack, onContinue, marketplaceMessage, marketplaceLoading }) {
   const chosenCount = config.services.filter(service => vendors.some(vendor => vendor.service === service && vendor.id === selected[service])).length;
   return <div className="stage-body">
     <Heading eyebrow="THE VENDOR CIRCLE · CURATED FOR YOUR BRIEF" title="Find your people."
       detail={'A considered shortlist for your ' + config.eventType + ' in ' + config.city + '. Explore the collection, compare each partner and choose the right fit.'}
       aside={<div className="soft-stat"><strong>{vendors.length}</strong><span>CURATED OPTIONS</span></div>} />
+    {marketplaceMessage && <div className="vp-message" role="status">{marketplaceMessage}</div>}
+    {marketplaceLoading && <div className="vp-message" role="status">Loading approved vendor services from Supabase…</div>}
     <div className="marketplace-groups">
       {config.services.map(service => {
         const options = vendors.filter(vendor => vendor.service === service);
@@ -257,7 +289,7 @@ function Marketplace({ vendors, selected, onSelect, config, onBack, onContinue }
               return <motion.button key={vendor.id} type="button" className={'vendor-option ' + (active ? 'selected' : '')} whileHover={{ y: -5 }} whileTap={{ scale: .985 }} onClick={() => onSelect(service, vendor.id)}>
                 <VendorAvatar vendor={vendor} className="vendor-image" />
                 <span className="vendor-card-index">{String(index + 1).padStart(2, '0')} / {String(options.length).padStart(2, '0')}</span>
-                <span className="vendor-info"><strong>{vendor.name}</strong><small>{vendor.tag || vendor.city} · up to {Number(vendor.capacity || 0).toLocaleString()} guests</small><span className="vendor-rating"><Star size={11} fill="currentColor" /> {vendor.rating || '4.8'} <b>·</b> {formatMoney(vendor.listedPrice)}</span></span>
+                <span className="vendor-info"><strong>{vendor.name}</strong><small>{vendor.serviceName || vendor.tag || vendor.city}{vendor.city ? ' · ' + vendor.city : ''}</small><span className="vendor-rating">{vendor.rating ? <><Star size={11} fill="currentColor" /> {vendor.rating} <b>·</b></> : 'STARTING AT'} {formatMoney(vendor.listedPrice)}</span></span>
                 <span className="vendor-select">{active ? <CheckCircle2 size={18} /> : <Plus size={18} />}</span>
               </motion.button>;
             })}
@@ -328,7 +360,7 @@ function PayPalPreviewModal({ total, deposit, vendors, onClose, onConfirm }) {
   </div>;
 }
 
-function LedgerStage({ vendors, dates, status, onBack, onCancelVendor, cancelNotice, onOpenPayPal, paymentReference }) {
+function LedgerStage({ vendors, dates, status, onBack, onCancelVendor, cancelNotice, onSendEnquiries, requestReference, requestMessage, requestBusy, customer }) {
   const listed = sum(vendors, 'listedPrice');
   const agreed = vendors.reduce((total, vendor) => total + getPrice(vendor), 0);
   const deposit = Math.round(agreed * .3);
@@ -363,10 +395,11 @@ function LedgerStage({ vendors, dates, status, onBack, onCancelVendor, cancelNot
       {cancelNotice && <div className="refund-notice" role="status">{cancelNotice}</div>}
       <div className="refund-foot"><span><i /> CLIENT-SIDE GUARD ACTIVE</span><span>{vendors.length} ACTIVE SERVICES</span></div>
     </section>
-    {paymentReference && <div className="payment-confirmation"><CheckCircle2 size={17} /><div><strong>Sandbox preview confirmed</strong><small>{paymentReference} · no funds moved</small></div></div>}
+    {requestReference && <div className="payment-confirmation"><CheckCircle2 size={17} /><div><strong>Event and vendor enquiries saved</strong><small>Reference: {requestReference}</small></div></div>}
+    {requestMessage && <div className="vp-message" role="status">{requestMessage}{!customer && <> <a href="/customer/login">Customer sign in / register</a></>}</div>}
     <div className="stage-footer"><button className="text-button" onClick={onBack}><ArrowLeft size={15} /> Back to negotiation</button>
-      <span className="footer-note">Milestone schedule is a planning record, not a custodial escrow balance.</span>
-      <button type="button" className="button button-dark" onClick={onOpenPayPal} disabled={!vendors.length}><Wallet size={16} /> Pay Initial Deposit with PayPal</button>
+      <span className="footer-note">Planning estimates only. Vendors must confirm availability and final quotes; no payment is collected here.</span>
+      <button type="button" className="button button-dark" onClick={onSendEnquiries} disabled={!vendors.length || requestBusy || Boolean(requestReference)}>{requestBusy ? 'Saving requests…' : requestReference ? 'Enquiries sent' : 'Send vendor enquiries'} <ArrowRight size={16} /></button>
     </div>
   </div>;
 }
@@ -380,6 +413,16 @@ export default function App() {
   useEffect(() => () => {
     transitionTimers.current.forEach(timer => window.clearTimeout(timer));
   }, []);
+
+  useEffect(() => {
+    if (!supabase) return undefined;
+    let active = true;
+    supabase.auth.getUser().then(({ data }) => { if (active) setCustomer(data.user || null); });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (active) setCustomer(session?.user || null);
+    });
+    return () => { active = false; subscription.unsubscribe(); };
+  }, []);
   const [config, setConfig] = useState({
     eventType: 'wedding', services: ['venue', 'catering', 'decor', 'photography', 'mehendi', 'entertainment'],
     guestCount: '120', city: 'New Delhi',
@@ -388,6 +431,12 @@ export default function App() {
   const [dates, setDates] = useState(initialDates);
   const [setupTime, setSetupTime] = useState('09:00');
   const [vendors, setVendors] = useState([]);
+  const [customer, setCustomer] = useState(null);
+  const [marketplaceMessage, setMarketplaceMessage] = useState('');
+  const [marketplaceLoading, setMarketplaceLoading] = useState(false);
+  const [requestReference, setRequestReference] = useState('');
+  const [requestMessage, setRequestMessage] = useState('');
+  const [requestBusy, setRequestBusy] = useState(false);
   const [selected, setSelected] = useState({});
   const [round, setRound] = useState(0);
   const [target, setTarget] = useState('19000');
@@ -422,18 +471,44 @@ export default function App() {
     .map(service => vendors.find(vendor => vendor.service === service && vendor.id === selected[service]))
     .filter(Boolean), [vendors, selected, config.services]);
 
-  const loadVendors = () => {
-    const local = getLocalVendors(config.eventType, config.services, config.city).map(modelVendor);
+  const loadVendors = async () => {
+    setMarketplaceLoading(true);
+    setMarketplaceMessage('');
+    setVendors([]);
+    setSelected({});
+    if (!supabase) {
+      setMarketplaceMessage('The marketplace needs Supabase configuration. Check the Render environment variables.');
+      setMarketplaceLoading(false);
+      go(2);
+      return;
+    }
+    const { data, error } = await supabase.from('marketplace_services').select('*').order('created_at', { ascending: false });
+    if (error) {
+      setMarketplaceMessage('Could not load live services: ' + error.message);
+      setMarketplaceLoading(false);
+      go(2);
+      return;
+    }
+    const mapped = (data || []).map(mapMarketplaceService).filter(vendor => vendor && config.services.includes(vendor.service));
+    const wantedCity = config.city.trim().toLowerCase();
+    const cityMatches = wantedCity ? mapped.filter(vendor => vendor.city.toLowerCase().includes(wantedCity) || wantedCity.includes(vendor.city.toLowerCase())) : mapped;
+    const visible = cityMatches.length ? cityMatches : mapped;
     const nextSelected = {};
     config.services.forEach(service => {
-      const first = local.find(vendor => vendor.service === service);
+      const first = visible.find(vendor => vendor.service === service);
       if (first) nextSelected[service] = first.id;
     });
-    setVendors(local);
+    setVendors(visible);
     setSelected(nextSelected);
+    setMarketplaceMessage(visible.length
+      ? (cityMatches.length ? 'Showing approved, published services from Supabase.' : 'No services matched that city exactly. Other approved cities are shown with their listed locations.')
+      : 'No approved, published vendor services are available yet. Add a vendor service, publish the shop, and have an administrator approve the vendor in Supabase.');
     setRound(0);
     setTarget('19000');
     setCancelNotice('');
+    setRequestReference('');
+    setRequestMessage('');
+    setMarketplaceLoading(false);
     go(2);
   };
 
@@ -453,6 +528,41 @@ export default function App() {
   const startNegotiation = () => {
     runNegotiation(false);
     go(3);
+  };
+
+  const sendEnquiries = async () => {
+    setRequestMessage('');
+    if (!supabase) { setRequestMessage('Supabase is not configured on the deployed app.'); return; }
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      setRequestMessage('Sign in or create a customer account before sending enquiries.');
+      return;
+    }
+    if (!chosen.length) { setRequestMessage('Select at least one live vendor service first.'); return; }
+    setRequestBusy(true);
+    try {
+      const selections = chosen.map(vendor => ({
+        service_id: vendor.serviceId || vendor.id,
+        vendor_id: vendor.vendorId,
+        message: 'PactAI event enquiry: ' + config.eventType + ' in ' + config.city + '. Guests: ' + config.guestCount + '. Event date: ' + dates.eventDate + '. Budget: ' + config.budget + '. Brief: ' + config.vision + '. Proposed planning estimate: ' + formatMoney(getPrice(vendor)) + '. Please confirm availability and your final quote.'
+      }));
+      const { data, error } = await supabase.rpc('submit_customer_event', {
+        p_event: {
+          event_type: config.eventType, city: config.city, guest_count: config.guestCount,
+          event_date: dates.eventDate, budget: config.budget, vision: config.vision,
+          dates, agreed_total: total
+        },
+        p_selections: selections
+      });
+      if (error) throw error;
+      setRequestReference(data);
+      setRequestMessage('Your event plan and ' + selections.length + ' vendor enquiries have been saved. Vendors can now see the requests in their portal.');
+      setStatus('Enquiries saved to Supabase');
+    } catch (error) {
+      setRequestMessage(error.message || 'Unable to send enquiries. Please try again.');
+    } finally {
+      setRequestBusy(false);
+    }
   };
 
   const cancelVendor = (vendor) => {
@@ -491,7 +601,7 @@ export default function App() {
   const initialDeposit = Math.round(total * .3);
 
   return <div className="app-shell">
-    <header className="app-header"><Brand /><div className="header-meta"><span className="header-dot" /><Sparkles size={13} /> AUTONOMOUS EVENT COMMERCE <i>·</i> PAYPAL HACKATHON BUILD</div><div className="header-trust"><ShieldCheck size={14} /> PRIVATE BY DESIGN</div></header>
+    <header className="app-header"><Brand /><div className="header-meta"><span className="header-dot" /><Sparkles size={13} /> AUTONOMOUS EVENT COMMERCE <i>·</i> SUPABASE MARKETPLACE</div><a className="header-trust" href="/customer/login">{customer ? 'Customer account' : 'Customer sign in'}</a></header>
     <Progress step={step} onStep={go} />
     <main className="app-main">
       <AnimatePresence mode="wait" initial={false}>
@@ -505,13 +615,13 @@ export default function App() {
         >
           {step === 0 && <OccasionStage config={config} setConfig={setConfig} next={() => { setDates(initialDates()); go(1); }} />}
           {step === 1 && <div className="stage-body"><Heading eyebrow="EVENT CALENDAR · SETUP & PAYMENT MILESTONES" title="Choose the moments." detail="Set the event day, vendor setup window and three clear payment checkpoints." /><CalendarPlanner dates={dates} onChange={setDates} setupTime={setupTime} onSetupTimeChange={setSetupTime} /><Footer back={() => go(0)} next={loadVendors} nextText="Browse curated vendors" note="Availability indicators are illustrative demo signals." /></div>}
-          {step === 2 && <Marketplace vendors={vendors} selected={selected} onSelect={updateSelection} config={config} onBack={() => go(1)} onContinue={startNegotiation} />}
+          {step === 2 && <Marketplace vendors={vendors} selected={selected} onSelect={updateSelection} config={config} onBack={() => go(1)} onContinue={startNegotiation} marketplaceMessage={marketplaceMessage} marketplaceLoading={marketplaceLoading} />}
           {step === 3 && <NegotiationStage vendors={chosen} round={round} busy={busy} target={target} setTarget={setTarget} onTargetNegotiate={() => runNegotiation(false)} onHarder={() => runNegotiation(true)} onBack={() => go(2)} onContinue={() => go(4)} />}
-          {step === 4 && <LedgerStage vendors={chosen} dates={dates} status={status} onBack={() => go(3)} onCancelVendor={cancelVendor} cancelNotice={cancelNotice} onOpenPayPal={() => setPaypalOpen(true)} paymentReference={paymentReference} />}
+          {step === 4 && <LedgerStage vendors={chosen} dates={dates} status={status} onBack={() => go(3)} onCancelVendor={cancelVendor} cancelNotice={cancelNotice} onSendEnquiries={sendEnquiries} requestReference={requestReference} requestMessage={requestMessage} requestBusy={requestBusy} customer={customer} />}
         </motion.section>
       </AnimatePresence>
     </main>
-    <footer className="app-footer"><span>© 2026 PACTAI STUDIO</span><span><i /> CLIENT-SIDE NEGOTIATION DEMO</span><span>BETTER AGREEMENTS, BEAUTIFULLY MADE <ChevronRight size={12} /></span></footer>
+    <footer className="app-footer"><span>© 2026 PACTAI STUDIO</span><span><i /> SUPABASE-PERSISTED VENDOR ENQUIRIES · NEGOTIATION ESTIMATES</span><span>BETTER AGREEMENTS, BEAUTIFULLY MADE <ChevronRight size={12} /></span></footer>
     <AnimatePresence>
       {curtainPhase !== 'idle' && <motion.div
         className="transition-curtain"
