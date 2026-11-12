@@ -1,4 +1,5 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import {
   ArrowLeft, ArrowRight, BadgeCheck, Building2, CalendarDays, Camera, CakeSlice,
   Check, CheckCircle2, ChevronRight, ClipboardList, Clock3, CreditCard, Flower2,
@@ -155,6 +156,22 @@ function ImageMosaic({ eventType, tier }) {
   </div>;
 }
 
+
+/* Reusable photo tile with a safe, local visual fallback for broken image URLs. */
+function SelectionPhoto({ src, alt, className = '' }) {
+  const [imageFailed, setImageFailed] = useState(false);
+  const fallback = 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1000&q=85';
+  return <div className={'selection-photo-frame ' + className}>
+    <img
+      src={imageFailed ? fallback : (src || fallback)}
+      alt={alt}
+      loading="lazy"
+      onError={() => { if (!imageFailed) setImageFailed(true); }}
+    />
+    <span className="selection-photo-caption">{alt}</span>
+  </div>;
+}
+
 function OccasionStage({ config, setConfig, next }) {
   const tier = config.services.length >= 3 ? 'Mega-bundle' : config.services.length === 2 ? 'Bundle bargain' : 'Standard';
   const toggle = (service) => setConfig(current => ({
@@ -171,23 +188,47 @@ function OccasionStage({ config, setConfig, next }) {
       {['Wedding & ceremonies', 'Family & social', 'Corporate & professional'].map((group, groupIndex) => <section className="occasion-group" key={group}>
         <div className="occasion-group-heading"><span>0{groupIndex + 1}</span><strong>{group}</strong><small>{EVENT_TYPES.filter(event => event.group === group).length} OCCASION TYPES</small></div>
         <div className="occasion-cards">
-          {EVENT_TYPES.filter(event => event.group === group).map(event => <button key={event.id} type="button"
-            className={'occasion-card ' + (config.eventType === event.id ? 'selected' : '')}
-            onClick={() => setConfig(current => ({ ...current, eventType: event.id }))}>
-            <img className="occasion-photo" src={event.photo || 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=900&q=85'}
-              alt={event.label} loading="lazy"
-              onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=900&q=85'; }} />
-            <strong>{event.label}</strong><small>{event.detail}</small>
-            {config.eventType === event.id && <span className="card-check"><Check size={12} /></span>}
-          </button>)}
+          {EVENT_TYPES.filter(event => event.group === group).map(event => <div className="occasion-choice" key={event.id}>
+            <motion.button
+              type="button"
+              className={'occasion-card ' + (config.eventType === event.id ? 'selected' : '')}
+              aria-pressed={config.eventType === event.id}
+              whileHover={{ y: -3 }}
+              whileTap={{ scale: .985 }}
+              onClick={() => setConfig(current => ({ ...current, eventType: event.id }))}
+            >
+              <span className="occasion-choice-title"><span className="occasion-choice-icon">{event.icon}</span><strong>{event.label}</strong>
+                {config.eventType === event.id && <span className="card-check"><Check size={12} /></span>}
+              </span>
+              <small>{event.detail}</small>
+            </motion.button>
+            {/* Each occasion photo sits directly below its own selection button. */}
+            <SelectionPhoto src={event.photo} alt={event.label} className="occasion-choice-image" />
+          </div>)}
         </div>
       </section>)}
       <div className="section-label"><b>02</b><strong>Build your service circle</strong><small>SELECT EVERYTHING YOU NEED</small></div>
       <div className="service-grid">
-        {Object.entries(SERVICE_META).map(([key, meta]) => { const Icon = ICONS[key]; const active = config.services.includes(key); return <button key={key} type="button" className={'service-chip ' + (active ? 'selected' : '')} onClick={() => toggle(key)} aria-pressed={active}>
-          <span className="service-chip-icon"><Icon size={18} /></span><span className="service-chip-copy"><strong>{meta.label}</strong><small>{meta.short}</small></span>
-          <span className="chip-check">{active ? <Check size={13} /> : <Plus size={13} />}</span>
-        </button>; })}
+        {Object.entries(SERVICE_META).map(([key, meta]) => {
+          const Icon = ICONS[key] || Sparkles;
+          const active = config.services.includes(key);
+          return <div className="service-choice" key={key}>
+            <motion.button
+              type="button"
+              className={'service-chip ' + (active ? 'selected' : '')}
+              onClick={() => toggle(key)}
+              aria-pressed={active}
+              whileHover={{ y: -3 }}
+              whileTap={{ scale: .985 }}
+            >
+              <span className="service-chip-icon"><Icon size={18} /></span>
+              <span className="service-chip-copy"><strong>{meta.label}</strong><small>{meta.short}</small></span>
+              <span className="chip-check">{active ? <Check size={13} /> : <Plus size={13} />}</span>
+            </motion.button>
+            {/* Service-specific photo is paired beneath its corresponding chip. */}
+            <SelectionPhoto src={meta.photo} alt={meta.label} className="service-choice-image" />
+          </div>;
+        })}
       </div>
       <div className="brief-grid">
         <label className="field"><span>GUEST COUNT</span><input type="number" min="1" max="5000" value={config.guestCount} onChange={e => setConfig(current => ({ ...current, guestCount: e.target.value }))} /></label>
@@ -216,12 +257,12 @@ function Marketplace({ vendors, selected, onSelect, config, onBack, onContinue }
           <div className="vendor-options" aria-label={(SERVICE_META[service]?.label || service) + ' vendor collection'}>
             {options.map((vendor, index) => {
               const active = selected[service] === vendor.id;
-              return <button key={vendor.id} type="button" className={'vendor-option ' + (active ? 'selected' : '')} onClick={() => onSelect(service, vendor.id)}>
+              return <motion.button key={vendor.id} type="button" className={'vendor-option ' + (active ? 'selected' : '')} whileHover={{ y: -5 }} whileTap={{ scale: .985 }} onClick={() => onSelect(service, vendor.id)}>
                 <VendorAvatar vendor={vendor} className="vendor-image" />
                 <span className="vendor-card-index">{String(index + 1).padStart(2, '0')} / {String(options.length).padStart(2, '0')}</span>
                 <span className="vendor-info"><strong>{vendor.name}</strong><small>{vendor.tag || vendor.city} · up to {Number(vendor.capacity || 0).toLocaleString()} guests</small><span className="vendor-rating"><Star size={11} fill="currentColor" /> {vendor.rating || '4.8'} <b>·</b> {formatMoney(vendor.listedPrice)}</span></span>
                 <span className="vendor-select">{active ? <CheckCircle2 size={18} /> : <Plus size={18} />}</span>
-              </button>;
+              </motion.button>;
             })}
           </div>
         </section>;
@@ -335,6 +376,13 @@ function LedgerStage({ vendors, dates, status, onBack, onCancelVendor, cancelNot
 
 export default function App() {
   const [step, setStep] = useState(0);
+  const [curtainPhase, setCurtainPhase] = useState('idle');
+  const transitionTimers = useRef([]);
+  const prefersReducedMotion = useReducedMotion();
+
+  useEffect(() => () => {
+    transitionTimers.current.forEach(timer => window.clearTimeout(timer));
+  }, []);
   const [config, setConfig] = useState({
     eventType: 'wedding', services: ['venue', 'catering', 'decor', 'photography', 'mehendi', 'entertainment'],
     guestCount: '120', city: 'New Delhi',
@@ -352,9 +400,25 @@ export default function App() {
   const [paymentReference, setPaymentReference] = useState('');
   const [paypalOpen, setPaypalOpen] = useState(false);
 
+  // Step navigation: cover with the forest-green curtain, change stage,
+  // then reveal. Reduced-motion users receive an immediate, non-animated change.
   const go = (targetStep) => {
-    setStep(targetStep);
-    window.scrollTo({ top: 0, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    transitionTimers.current.forEach(timer => window.clearTimeout(timer));
+    if (prefersReducedMotion) {
+      setStep(targetStep);
+      setCurtainPhase('idle');
+      window.scrollTo({ top: 0, behavior: 'auto' });
+      return;
+    }
+    setCurtainPhase('cover');
+    transitionTimers.current = [
+      window.setTimeout(() => {
+        setStep(targetStep);
+        setCurtainPhase('reveal');
+        window.scrollTo({ top: 0, behavior: 'auto' });
+      }, 360),
+      window.setTimeout(() => setCurtainPhase('idle'), 1050)
+    ];
   };
 
   const chosen = useMemo(() => config.services
@@ -433,15 +497,40 @@ export default function App() {
     <header className="app-header"><Brand /><div className="header-meta"><span className="header-dot" /><Sparkles size={13} /> AUTONOMOUS EVENT COMMERCE <i>·</i> PAYPAL HACKATHON BUILD</div><div className="header-trust"><ShieldCheck size={14} /> PRIVATE BY DESIGN</div></header>
     <Progress step={step} onStep={go} />
     <main className="app-main">
-      <section className="wizard-stage">
-        {step === 0 && <OccasionStage config={config} setConfig={setConfig} next={() => { setDates(initialDates()); go(1); }} />}
-        {step === 1 && <div className="stage-body"><Heading eyebrow="EVENT CALENDAR · SETUP & PAYMENT MILESTONES" title="Choose the moments." detail="Set the event day, vendor setup window and three clear payment checkpoints." /><CalendarPlanner dates={dates} onChange={setDates} setupTime={setupTime} onSetupTimeChange={setSetupTime} /><Footer back={() => go(0)} next={loadVendors} nextText="Browse curated vendors" note="Availability indicators are illustrative demo signals." /></div>}
-        {step === 2 && <Marketplace vendors={vendors} selected={selected} onSelect={updateSelection} config={config} onBack={() => go(1)} onContinue={startNegotiation} />}
-        {step === 3 && <NegotiationStage vendors={chosen} round={round} busy={busy} target={target} setTarget={setTarget} onTargetNegotiate={() => runNegotiation(false)} onHarder={() => runNegotiation(true)} onBack={() => go(2)} onContinue={() => go(4)} />}
-        {step === 4 && <LedgerStage vendors={chosen} dates={dates} status={status} onBack={() => go(3)} onCancelVendor={cancelVendor} cancelNotice={cancelNotice} onOpenPayPal={() => setPaypalOpen(true)} paymentReference={paymentReference} />}
-      </section>
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.section
+          key={step}
+          className="wizard-stage"
+          initial={prefersReducedMotion ? false : { opacity: 0, y: 22, scale: .992, filter: 'blur(5px)' }}
+          animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
+          exit={prefersReducedMotion ? undefined : { opacity: 0, y: -14, scale: .995, filter: 'blur(3px)' }}
+          transition={{ duration: prefersReducedMotion ? 0 : .42, ease: [0.22, 1, 0.36, 1] }}
+        >
+          {step === 0 && <OccasionStage config={config} setConfig={setConfig} next={() => { setDates(initialDates()); go(1); }} />}
+          {step === 1 && <div className="stage-body"><Heading eyebrow="EVENT CALENDAR · SETUP & PAYMENT MILESTONES" title="Choose the moments." detail="Set the event day, vendor setup window and three clear payment checkpoints." /><CalendarPlanner dates={dates} onChange={setDates} setupTime={setupTime} onSetupTimeChange={setSetupTime} /><Footer back={() => go(0)} next={loadVendors} nextText="Browse curated vendors" note="Availability indicators are illustrative demo signals." /></div>}
+          {step === 2 && <Marketplace vendors={vendors} selected={selected} onSelect={updateSelection} config={config} onBack={() => go(1)} onContinue={startNegotiation} />}
+          {step === 3 && <NegotiationStage vendors={chosen} round={round} busy={busy} target={target} setTarget={setTarget} onTargetNegotiate={() => runNegotiation(false)} onHarder={() => runNegotiation(true)} onBack={() => go(2)} onContinue={() => go(4)} />}
+          {step === 4 && <LedgerStage vendors={chosen} dates={dates} status={status} onBack={() => go(3)} onCancelVendor={cancelVendor} cancelNotice={cancelNotice} onOpenPayPal={() => setPaypalOpen(true)} paymentReference={paymentReference} />}
+        </motion.section>
+      </AnimatePresence>
     </main>
     <footer className="app-footer"><span>© 2026 PACTAI STUDIO</span><span><i /> CLIENT-SIDE NEGOTIATION DEMO</span><span>BETTER AGREEMENTS, BEAUTIFULLY MADE <ChevronRight size={12} /></span></footer>
+    <AnimatePresence>
+      {curtainPhase !== 'idle' && <motion.div
+        className="transition-curtain"
+        key="pactai-transition-curtain"
+        initial={{ scaleY: 0 }}
+        animate={{ scaleY: curtainPhase === 'cover' ? 1 : 0 }}
+        exit={{ scaleY: 0 }}
+        transition={{ duration: curtainPhase === 'cover' ? .34 : .56, ease: [0.76, 0, 0.24, 1] }}
+        style={{ transformOrigin: curtainPhase === 'cover' ? 'bottom' : 'top' }}
+        aria-hidden="true"
+      >
+        <div className="curtain-brand">p<span>.</span></div>
+        <div className="curtain-message">MAKE IT A MOMENT<small>PACTAI · EVENT PROTOCOL</small></div>
+        <div className="curtain-orbit orbit-a" /><div className="curtain-orbit orbit-b" />
+      </motion.div>}
+    </AnimatePresence>
     {paypalOpen && <PayPalPreviewModal total={total} deposit={initialDeposit} vendors={chosen} onClose={() => setPaypalOpen(false)} onConfirm={confirmPreview} />}
   </div>;
 }
