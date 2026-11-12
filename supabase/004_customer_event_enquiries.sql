@@ -88,6 +88,10 @@ begin
     raise exception 'Sign in before sending vendor enquiries';
   end if;
 
+  if not exists (select 1 from public.customer_profiles cp where cp.id = v_customer_id) then
+    raise exception 'A customer account is required to send vendor enquiries';
+  end if;
+
   if p_event is null or jsonb_typeof(p_event) <> 'object' then
     raise exception 'Event details are missing';
   end if;
