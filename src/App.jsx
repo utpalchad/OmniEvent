@@ -471,7 +471,7 @@ export default function App() {
   };
 
   const restart = () => {
-    setStep(0);
+    go(0);
     setDates(initialDates());
     setVendors([]);
     setSelected({});
