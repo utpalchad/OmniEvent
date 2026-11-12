@@ -291,3 +291,38 @@ grant select, insert, update, delete on public.customer_profiles, public.vendor_
 grant select, insert, update on public.enquiries, public.bookings to authenticated;
 grant select, insert on public.negotiation_messages to authenticated;
 grant select on public.earnings to authenticated;
+
+
+-- Create the vendor profile automatically when a vendor signs up.
+-- This is required when email confirmation is enabled and signup has no active session.
+create or replace function public.create_vendor_profile_for_new_auth_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if coalesce(new.raw_user_meta_data->>'role','') = 'vendor' then
+    insert into public.vendor_profiles (
+      id, full_name, business_name, phone, category, city, role, approval_status
+    )
+    values (
+      new.id,
+      coalesce(nullif(new.raw_user_meta_data->>'full_name',''), 'Vendor'),
+      coalesce(nullif(new.raw_user_meta_data->>'business_name',''), 'My Business'),
+      coalesce(nullif(new.raw_user_meta_data->>'phone',''), ''),
+      coalesce(nullif(new.raw_user_meta_data->>'category',''), 'Other'),
+      coalesce(nullif(new.raw_user_meta_data->>'city',''), ''),
+      'vendor'::public.app_role,
+      'pending'
+    )
+    on conflict (id) do nothing;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists on_auth_user_created_vendor_profile on auth.users;
+create trigger on_auth_user_created_vendor_profile
+after insert on auth.users
+for each row execute function public.create_vendor_profile_for_new_auth_user();
