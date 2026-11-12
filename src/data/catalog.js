@@ -35,6 +35,9 @@ export const SERVICE_META = {
   cake: { label: 'Cakes & desserts', short: 'Wedding cakes, dessert tables & treats', description: 'A sweet finish to the occasion.', photo: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?auto=format&fit=crop&w=1000&q=88' },
   planner: { label: 'Planners & coordination', short: 'Wedding planners & event managers', description: 'One calm point of coordination.', photo: 'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?auto=format&fit=crop&w=1000&q=88' },
   fashion: { label: 'Bridal & groom fashion', short: 'Wedding wear, jewellery & styling', description: 'The finishing touches, beautifully found.', photo: 'https://images.unsplash.com/photo-1595777457583-95e059d581b8?auto=format&fit=crop&w=1000&q=88' },
+  sound_lighting: { label: 'Sound & lighting', short: 'Audio, stage lighting, LED walls & show control', description: 'The production that brings every moment to life.', photo: 'https://images.unsplash.com/photo-1506157786151-b8491531f063?auto=format&fit=crop&w=1000&q=88' },
+  security: { label: 'Event security', short: 'Access control, guest flow & event safety', description: 'A confident, well-managed gathering.', photo: 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1000&q=88' },
+  rentals: { label: 'Luxury rentals', short: 'Lounge furniture, tables & statement pieces', description: 'The finishing details, ready for your guests.', photo: 'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1000&q=88' },
 };
 
 const allEvents = ['wedding', 'birthday', 'memorial', 'corporate'];
