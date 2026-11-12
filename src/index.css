@@ -1657,11 +1657,13 @@ html { scroll-padding-top: 90px; }
 }
 .stage-heading, .section-label, .panel, .budget-grid-shell { scroll-margin-top: 100px; }
 
-/* The final request explicitly asks for no scroll-reveal or entrance animations. */
-.app-shell * { animation: none !important; }
-.stage-heading, .occasion-cards, .service-grid, .brief-grid, .occasion-actions,
-.market-section, .negotiation-card, .milestone-card, .ledger-summary > div {
-  opacity: 1 !important; transform: none !important; filter: none !important;
+/* No scroll-reveal animations: keep content visible and static until navigation.
+   Page-to-page transitions and deliberate hover feedback are handled separately. */
+.occasion-cards, .service-grid, .brief-grid, .occasion-actions,
+.stage-body > .marketplace-groups, .stage-body > .negotiation-toolbar,
+.stage-body > .negotiation-cards, .stage-body > .savings-strip,
+.stage-body > .ledger-summary, .stage-body > .milestone-grid {
+  animation: none !important;
 }
 
 /* Step 01: full-width 110px celebration photography while retaining the
@@ -1830,4 +1832,153 @@ html { scroll-padding-top: 90px; }
   .paypal-preview-modal { margin: auto 0; border-radius: 17px; }
   .modal-actions { flex-direction: column-reverse; }
   .modal-actions .button { width: 100%; }
+}
+
+
+/* ─────────────────────────────────────────────────────────────────
+   PAIR EACH FRONT-PAGE CHOICE WITH ITS OWN PHOTO
+   ───────────────────────────────────────────────────────────────── */
+.occasion-group .occasion-cards {
+  display: grid;
+  grid-template-columns: repeat(4,minmax(0,1fr));
+  align-items: start;
+  gap: 13px;
+}
+.occasion-choice, .service-choice { display: flex; min-width: 0; flex-direction: column; gap: 8px; }
+.occasion-choice .occasion-card {
+  width: 100%; min-height: 78px !important; padding: 13px 13px 12px !important;
+  display: flex; flex-direction: column; justify-content: center; gap: 7px;
+  border: 1px solid #e4dccf; border-radius: 13px;
+  background: rgba(255,253,249,.95); text-align: left; overflow: visible;
+  transition: border-color .28s ease, background .28s ease, box-shadow .28s ease, transform .28s ease;
+}
+.occasion-choice .occasion-card:hover {
+  border-color: #8d9c8c; background: #fffefa;
+  box-shadow: 0 9px 21px rgba(36,52,41,.075);
+}
+.occasion-choice .occasion-card.selected {
+  border-color: #1F3A2E; background: linear-gradient(145deg,#fffefa,#edf2eb);
+  box-shadow: inset 0 0 0 1px rgba(31,58,46,.11), 0 7px 18px rgba(31,58,46,.08);
+}
+.occasion-choice-title { display: flex; align-items: center; gap: 9px; padding-right: 24px; position: relative; }
+.occasion-choice-title strong { color: #263b30; font-size: 11px !important; line-height: 1.25; }
+.occasion-choice-icon {
+  display: inline-grid; flex: 0 0 31px; width: 31px; height: 31px;
+  place-items: center; border-radius: 10px; background: #f3eee4; font-size: 17px;
+}
+.occasion-choice .occasion-card.selected .occasion-choice-icon { background: #e3ebe1; }
+.occasion-choice .occasion-card small {
+  display: block; padding: 0 !important; color: #85877d; font-size: 8px !important; line-height: 1.35;
+}
+.occasion-choice .card-check {
+  position: absolute; top: 50%; right: -17px; transform: translateY(-50%);
+  width: 21px; height: 21px; display: grid; place-items: center;
+  border-radius: 50%; border: 2px solid #fff; color: #fff;
+  background: #1F3A2E; box-shadow: 0 2px 7px rgba(0,0,0,.15);
+}
+.selection-photo-frame {
+  position: relative; width: 100%; min-width: 0; overflow: hidden;
+  border-radius: 12px; background: #e9e4d9;
+  box-shadow: 0 4px 13px rgba(59,49,32,.055);
+  isolation: isolate;
+}
+.selection-photo-frame img {
+  display: block; width: 100%; height: 100%; object-fit: cover;
+  transition: transform .65s cubic-bezier(.2,.8,.2,1), filter .45s ease;
+}
+.occasion-choice-image { height: 116px; }
+.service-choice-image { height: 92px; }
+.occasion-choice:hover .selection-photo-frame img,
+.service-choice:hover .selection-photo-frame img { transform: scale(1.055); }
+.selection-photo-caption {
+  position: absolute; left: 10px; right: 10px; bottom: 8px;
+  color: #fff; font-size: 8px; line-height: 1.2; font-weight: 700;
+  letter-spacing: .045em; text-shadow: 0 1px 7px rgba(0,0,0,.65);
+  opacity: .92; pointer-events: none;
+}
+.selection-photo-fallback {
+  width: 100%; height: 100%; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 8px;
+  color: #f8f4eb; background:
+    radial-gradient(circle at 72% 22%,rgba(201,163,101,.35),transparent 40%),
+    linear-gradient(140deg,#2c4c3b,#14291f);
+}
+.selection-photo-fallback span { font: 500 17px var(--serif); text-align: center; padding: 0 10px; }
+
+/* The services are also image-led, but their photos are intentionally shorter
+   than occasion photos so the front page remains scannable. */
+.service-grid {
+  grid-template-columns: repeat(3,minmax(0,1fr));
+  align-items: start; gap: 15px 12px;
+}
+.service-choice .service-chip {
+  width: 100%; min-height: 58px; padding: 9px 12px;
+  border: 1px solid #e3dbcf; border-radius: 12px;
+  background: rgba(255,253,249,.95);
+  transition: transform .28s ease, box-shadow .28s ease, border-color .28s ease, background .28s ease;
+}
+.service-choice .service-chip:hover {
+  transform: translateY(-2px); border-color: #a9b6a5;
+  box-shadow: 0 8px 18px rgba(36,52,41,.07);
+}
+.service-choice .service-chip.selected {
+  border-color: #1F3A2E; background: #eef2eb;
+  box-shadow: inset 0 0 0 1px rgba(31,58,46,.09), 0 5px 14px rgba(31,58,46,.06);
+}
+.service-choice .service-chip-copy strong { color: #293d32; font-size: 9px; }
+.service-choice .service-chip-copy small { color: #84877e; font-size: 7px; line-height: 1.25; }
+.service-choice .service-chip-icon {
+  flex: 0 0 34px; width: 34px; height: 34px; border-radius: 10px;
+  transition: transform .3s ease, color .3s ease, background .3s ease;
+}
+.service-choice:hover .service-chip-icon { transform: translateY(-2px) rotate(-4deg); }
+.service-choice .service-chip.selected .service-chip-icon {
+  color: #fff; background: #1F3A2E;
+}
+
+/* Restored cinematic page transitions. The curtain covers the viewport while
+   AnimatePresence switches the wizard stage underneath it. */
+.transition-curtain {
+  position: fixed !important; inset: 0 !important; z-index: 300 !important;
+  pointer-events: none; display: grid; place-items: center; overflow: hidden;
+  will-change: transform;
+}
+.transition-curtain .curtain-brand,
+.transition-curtain .curtain-message,
+.transition-curtain .curtain-orbit { pointer-events: none; }
+.wizard-stage { transform-origin: center top; will-change: opacity, transform, filter; }
+.progress-step, .button, .text-button, .occasion-choice .occasion-card,
+.service-choice .service-chip, .vendor-option {
+  transition-timing-function: cubic-bezier(.22,1,.36,1);
+}
+.button:not(:disabled) { transition: transform .24s ease, box-shadow .24s ease, background .24s ease, color .24s ease; }
+.button:not(:disabled):hover { transform: translateY(-2px); }
+.button:not(:disabled):active { transform: translateY(0) scale(.975); }
+.button svg, .text-button svg, .vendor-select svg {
+  transition: transform .25s ease;
+}
+.button:hover svg, .text-button:hover svg { transform: translateX(3px); }
+.text-button:hover svg { transform: translateX(-2px); }
+.vendor-option { transition: transform .3s ease, box-shadow .3s ease, border-color .3s ease; }
+.vendor-option:hover { box-shadow: 0 14px 28px rgba(36,52,41,.1); }
+@media (max-width: 1050px) {
+  .occasion-group .occasion-cards { grid-template-columns: repeat(3,minmax(0,1fr)); }
+  .service-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+@media (max-width: 760px) {
+  .occasion-group .occasion-cards { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 11px; }
+  .occasion-choice-image { height: 100px; }
+  .service-grid { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 13px 10px; }
+  .service-choice-image { height: 86px; }
+  .occasion-choice .occasion-card { min-height: 82px !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .transition-curtain { display: none; }
+  .wizard-stage { will-change: auto; }
+  .selection-photo-frame img,
+  .occasion-choice .occasion-card,
+  .service-choice .service-chip,
+  .vendor-option, .button, .text-button {
+    transition: none !important;
+  }
 }
