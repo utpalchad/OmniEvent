@@ -1,7 +1,5 @@
 import React,{useEffect,useState}from'react';
-import{createClient}from'@supabase/supabase-js';
-const url=import.meta.env.VITE_SUPABASE_URL,key=import.meta.env.VITE_SUPABASE_ANON_KEY;
-const sb=url&&key?createClient(url,key,{auth:{persistSession:true,autoRefreshToken:true}}):null;
+import {supabase as sb} from '../lib/supabase.js';
 const cats=['Venue','Catering','Photography','Videography','Decoration','Makeup and beauty','Mehendi','DJ and entertainment','Wedding planning','Transportation','Invitation design','Lighting','Other'];
 const paths=['dashboard','shop','services','enquiries','bookings','negotiations','earnings','settings'];
 const go=p=>{history.pushState({},'',p);dispatchEvent(new PopStateEvent('popstate'))};
